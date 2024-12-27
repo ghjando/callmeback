@@ -1,0 +1,47 @@
+=============
+json 資料格式
+=============
+{
+  "source_id": "mipa",
+  "action": "預約",
+  "callme_id": "VTk1NTQ3YjdiOWIxMjI2ZjA4NTYzODI1YzdmOGRiNTMz",
+  "user_name": "陳筱玲",
+  "shop_id": "2046",
+  "shop_name": "中正耳鼻喉科診所",
+  "booking_name": "一診", 
+  "booking_date": "2024-11-07",
+  "booking_time": "09:30:00",
+  "booking_num": "18",
+  "booking_time_id": "202411070930",
+  "hash": "",
+}
+
+// trial VM 測試"預約"
+curl -H 'Content-Type: application/json' -d '{"source_id": "mipa", "action": "預約", "callme_id": "VTk1NTQ3YjdiOWIxMjI2ZjA4NTYzODI1YzdmOGRiNTMz", "user_name": "陳筱玲", "shop_id": "2046", "shop_name": "中正耳鼻喉科診所", "booking_name": "一診", "booking_date": "2024-11-07", "booking_time": "09:30:00", "booking_num": "18", "booking_time_id": "202411070930", "hash": "1d8083206304d530edcf080e77af9b92"}' -X POST http://10.140.0.2:3100/booking
+
+curl -H 'Content-Type: application/json' -d '{"source_id": "mipa", "action": "預約", "callme_id": "VTk1NTQ3YjdiOWIxMjI2ZjA4NTYzODI1YzdmOGRiNTMz", "user_name": "陳筱玲", "shop_id": "2046", "shop_name": "中正耳鼻喉科診所", "booking_name": "二診", "booking_date": "2024-11-07", "booking_time": "14:00:00", "booking_num": "27", "booking_time_id": "202411071400", "hash": ""}' -X POST http://10.140.0.2:3100/booking
+
+curl -H 'Content-Type: application/json' -d '{"source_id": "mipa", "action": "預約", "callme_id": "VTk1NTQ3YjdiOWIxMjI2ZjA4NTYzODI1YzdmOGRiNTMz", "user_name": "陳筱玲", "shop_id": "", "shop_name": "李聰明內科診所", "booking_name": "", "booking_date": "2024-11-07", "booking_time": "20:30:00", "booking_num": "", "booking_time_id": "202411072030", "hash": ""}' -X POST http://10.140.0.2:3100/booking
+
+curl -H 'Content-Type: application/json' -d '{"source_id": "mipa", "action": "預約", "callme_id": "VTk1NTQ3YjdiOWIxMjI2ZjA4NTYzODI1YzdmOGRiNTMz", "user_name": "陳筱玲", "shop_id": "1896", "shop_name": "喜悅中醫", "booking_name": "一診", "booking_date": "2024-11-07", "booking_time": "", "booking_num": "36", "booking_time_id": "202411072100", "hash": ""}' -X POST http://10.140.0.2:3100/booking
+
+// trial VM 測試"取消預約"
+curl -H 'Content-Type: application/json' -d '{"source_id": "mipa", "action": "取消預約", "callme_id": "VTk1NTQ3YjdiOWIxMjI2ZjA4NTYzODI1YzdmOGRiNTMz", "booking_date": "2024-11-07", "booking_time_id": "202411070930", "hash": "1d8083206304d530edcf080e77af9b92"}' -X POST http://10.140.0.2:3100/booking
+
+// trial VM 測試"test123"
+curl -H 'Content-Type: application/json' -d '{"source_id": "mipa", "action": "取消預約", "callme_id": "test123", "booking_date": "2024-11-07", "booking_time_id": "202411070930", "hash": "1d8083206304d530edcf080e77af9b92"}' -X POST http://10.140.0.2:3100/booking
+
+// trial CloudRun 測試"預約"
+curl -H 'Content-Type: application/json' -d '{"source_id": "mipa", "action": "預約", "callme_id": "VTk1NTQ3YjdiOWIxMjI2ZjA4NTYzODI1YzdmOGRiNTMz", "user_name": "陳筱玲", "shop_id": "2046", "shop_name": "中正耳鼻喉科診所", "booking_name": "一診", "booking_date": "2024-11-07", "booking_time": "09:30:00", "booking_num": "18", "booking_time_id": "202411070930", "hash": "1d8083206304d530edcf080e77af9b92"}' -X POST https://notify-user-306511771181.asia-east1.run.app/booking
+
+// trial CloudRun 測試"取消預約"
+curl -H 'Content-Type: application/json' -d '{"source_id": "mipa", "action": "取消預約", "callme_id": "VTk1NTQ3YjdiOWIxMjI2ZjA4NTYzODI1YzdmOGRiNTMz", "booking_date": "2024-11-07", "booking_time_id": "202411070930", "hash": "1d8083206304d530edcf080e77af9b92"}' -X POST https://notify-user-306511771181.asia-east1.run.app/booking
+
+// trial CloudRun 測試"test123"
+curl -H 'Content-Type: application/json' -d '{"source_id": "mipa", "action": "取消預約", "callme_id": "test123", "booking_date": "2024-11-07", "booking_time_id": "202411070930", "hash": "1d8083206304d530edcf080e77af9b92"}' -X POST https://notify-user-306511771181.asia-east1.run.app/booking
+
+
+// 以下未採用
+curl -H "Content-type: multipart/form-data" -F 'source_id=mipa' -F 'action=預約' -F 'callme_id=VTk1NTQ3YjdiOWIxMjI2ZjA4NTYzODI1YzdmOGRiNTMz' -F 'user_name=陳筱玲' -F 'shop_id=2046' -F 'shop_name=中正耳鼻喉科診所' -F 'booking_name=一診' -F 'booking_date=2024-11-07' -F 'booking_time=09:30:00' -F 'booking_num=18' -X POST http://10.140.0.2:3100/booking
+
+curl -H "Content-type: application/x-www-form-urlencoded" -d 'source_id=mipa' -d 'action=預約' -d 'callme_id=VTk1NTQ3YjdiOWIxMjI2ZjA4NTYzODI1YzdmOGRiNTMz' -d 'user_name=陳筱玲' -d 'shop_id=2046' -d 'shop_name=中正耳鼻喉科診所' -d 'booking_name=一診' -d 'booking_date=2024-11-07' -d 'booking_time=09:30:00' -d 'booking_num=18' -X POST http://10.140.0.2:3100/booking

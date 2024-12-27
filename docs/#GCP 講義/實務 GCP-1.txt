@@ -1,0 +1,303 @@
+Google Cloud Platform (GCP) 實務
+
+Update: 
+2024/7/17
+
+================================================
+Service 接收 Google Scheduler 事件
+此程式週期性接收 Google Scheduler 每分鐘呼叫一次事件 (per minute)
+================================================
+#### Source code piece:
+#### py-helloworld/main.py:
+----
+import os
+import json
+import base64
+from flask import Flask, request
+import image
+
+app = Flask(__name__)
+
+@app.route("/")
+def hello_world():
+	"""Example Hello World route."""
+	name = os.environ.get("NAME", "World")
+	return f"Hello {name}!"
+
+if __name__ == "__main__":
+	app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+----
+
+#### py-helloworld-storage/requirements.txt:
+----
+Flask==3.0.0
+gunicorn==22.0.0
+Werkzeug==3.0.1
+
+#### py-helloworld-storage/Dockerfile:
+FROM python:3.12
+ENV PYTHONUNBUFFERED True
+COPY requirements.txt ./
+RUN pip install -r requirements.txt
+
+# Copy local code to the container image.
+ENV APP_HOME /app
+WORKDIR $APP_HOME
+COPY . ./
+
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 main:app
+----
+
+
+PROJECT_ID=$(gcloud config get-value project)
+
+docker build . --tag asia-east1-docker.pkg.dev/callme-398802/my-repo-1/py-helloworld
+docker push asia-east1-docker.pkg.dev/$PROJECT_ID/my-repo-1/py-helloworld
+
+#### 建立 service-accounts:
+gcloud iam service-accounts create sa-py-helloworld
+SERVICE_ACCOUNT=sa-py-helloworld@$PROJECT_ID.iam.gserviceaccount.com
+
+#### Deploy (run) service:
+gcloud run deploy py-helloworld --service-account=$SERVICE_ACCOUNT \
+  --image asia-east1-docker.pkg.dev/$PROJECT_ID/my-repo-1/py-helloworld
+-
+obtain the URL, e.g. https://py-helloworld-f6srfekjlq-de.a.run.app
+
+#### 使此 service 具有 run.invoker 角色:
+gcloud run services add-iam-policy-binding py-helloworld \
+  --member=serviceAccount:$SERVICE_ACCOUNT --role=roles/run.invoker
+(以下為執行訊息)
+Updated IAM policy for service [py-helloworld].
+bindings:
+- members:
+  - serviceAccount:sa-py-helloworld@callme-398802.iam.gserviceaccount.com
+  role: roles/run.invoker
+etag: BwYYB-BRmsc=
+version: 1
+
+#### Create Scheduler job
+gcloud scheduler jobs create http py-helloworld-invoker --schedule "*/1 * * * *" \
+  --http-method=GET --uri=https://py-helloworld-f6srfekjlq-de.a.run.app \
+  --oidc-service-account-email=$SERVICE_ACCOUNT \
+  --location=asia-east1
+# 有關 --uri=https://....., 請填寫 GCP 實際配給此 service 的 URL
+
+#### Test: 使用瀏覽器瀏覽上述 URL e.g. https://py-helloworld-f6srfekjlq-de.a.run.app
+#### 可看到訊息: Hello World!
+
+#### Clean Up
+gcloud scheduler jobs delete py-helloworld-invoker --location=asia-east1
+    # ^^ 此處如果不指定 --location, 會參考 App engine/location 設定
+gcloud run services delete py-helloworld
+gcloud iam service-accounts delete $SERVICE_ACCOUNT
+gcloud artifacts docker images delete asia-east1-docker.pkg.dev/$PROJECT_ID/my-repo-1/py-helloworld
+
+
+================================================
+承上，並加上處理 Google Storage 事件.
+此程式承上功能, 並加上當有檔案新增至指定 Cloud storage bucket 時, 將其拷貝至另外一個附加 .bak 的檔案.
+Directory: py-helloworld-storage
+Receive direct message from Cloud Storage
+================================================
+#### Source code piece:
+#### py-helloworld-storage/main.py:
+----
+import os
+import json
+#import base64
+from flask import Flask, request
+from google.cloud import storage
+
+app = Flask(__name__)
+
+@app.route("/")
+def hello_world():
+    """Example Hello World route."""
+    name = os.environ.get("NAME", "World")
+    return f"Hello {name}!"
+
+def download_blob_into_memory(bucket_name, blob_name):
+    """Downloads a blob into memory."""
+    # The ID of your GCS bucket
+    # bucket_name = "your-bucket-name"
+
+    # The ID of your GCS object
+    # blob_name = "storage-object-name"
+
+    storage_client = storage.Client()
+
+    bucket = storage_client.bucket(bucket_name)
+
+    # Construct a client side representation of a blob.
+    # Note `Bucket.blob` differs from `Bucket.get_blob` as it doesn't retrieve
+    # any content from Google Cloud Storage. As we don't need additional data,
+    # using `Bucket.blob` is preferred here.
+    blob = bucket.blob(blob_name)
+    contents = blob.download_as_bytes()
+
+    print(
+        "Downloaded storage object {} from bucket {} as the following bytes object: {}.".format(
+            blob_name, bucket_name, contents.decode("utf-8")
+        )
+    )
+
+@app.route("/storage", methods=['POST'])
+def hello_storage():
+    """Receive and parse Pub/Sub messages containing Cloud Storage event data."""
+    event_data = request.get_json()
+    if not event_data:
+        msg = "no Pub/Sub message received"
+        print(f"error: {msg}")
+        return f"Bad Request: {msg}", 400
+
+    if not isinstance(event_data, dict):
+        msg = "invalid Pub/Sub message format, cannot form key/value pairs"
+        print(f"error: {msg}")
+        return f"Bad Request: {msg}", 400
+    
+    print("event_data:", event_data)
+
+    # Validate the message is a Cloud Storage event.
+    if not event_data["name"] or not event_data["bucket"]:
+        msg = (
+            "Invalid Cloud Storage notification: "
+            "expected name and bucket properties"
+        )
+        print(f"error: {msg}")
+        return f"Bad Request: {msg}", 400
+
+    try:
+        download_blob_into_memory(event_data['bucket'], event_data['name'])
+        return ("", 204)    # success (no content and need not refresh)
+
+    except Exception as e:
+        print(f"error: {e}")
+        return ("", 500)
+
+    return ("", 500)
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+----
+
+#### requirements.txt:
+----
+Flask==3.0.0
+gunicorn==22.0.0
+Werkzeug==3.0.1
+cloudevent=1.10.1
+google-cloud-storage==2.16.0
+----
+
+#### Dockerfile:
+----
+FROM python:3.12
+ENV PYTHONUNBUFFERED True
+COPY requirements.txt ./
+RUN pip install -r requirements.txt
+
+# Copy local code to the container image.
+ENV APP_HOME /app
+WORKDIR $APP_HOME
+COPY . ./
+
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 main:app
+----
+
+#### Get environment variables
+PROJECT_ID=$(gcloud config get-value project)
+PROJECT_NUMBER=$(gcloud projects list --filter="project_id:$PROJECT_ID" --format="value(project_number)")
+# Get the default service. It will be the Compute engine default service, e.g. "410240967190-compute@developer.gserviceaccount.com"
+DEFAULT_SERVICE_ACCOUNT="$PROJECT_NUMBER-compute@developer.gserviceaccount.com"       
+# Get the cloud storage agent, e.g. service-410240967190@gs-project-accounts.iam.gserviceaccount.com
+CLOUD_STORAGE_AGENT="$(gsutil kms serviceaccount -p $PROJECT_ID)"
+
+#### 使 Compute Engine default service account 具有 roles/eventarc.eventReceiver 角色: (once)
+#### (經過實驗, 無法對我們自己所建立的 service account 加上 --role=roles/eventarc.eventReceiver, 會說無法將該 role 賦予指定 resource)
+gcloud projects add-iam-policy-binding $PROJECT_ID --member serviceAccount:$CLOUD_STORAGE_AGENT --role roles/pubsub.publisher
+
+#### Enable API: (once)
+gcloud services enable logging.googleapis.com \
+  eventarc.googleapis.com \
+  eventarcpublishing.googleapis.com
+
+#### Configure variable for convenience (once)(optional / for convenience)
+gcloud config set eventarc/location asia-east1
+
+#### Build docker image (in local) and upload local image to Artifact repository
+cd <path-to>/py-helloword-storage
+docker build . --tag asia-east1-docker.pkg.dev/$PROJECT_ID/my-repo-1/py-helloworld-storage
+docker push asia-east1-docker.pkg.dev/$PROJECT_ID/my-repo-1/py-helloworld-storage
+--
+Successfully tagged asia-east1-docker.pkg.dev/callme-398802/my-repo-1/py-helloworld-storage:latest
+
+#### Create service-accounts: (once for specific service account)
+gcloud iam service-accounts create sa-py-helloworld-storage
+SERVICE_ACCOUNT=sa-py-helloworld-storage@$PROJECT_ID.iam.gserviceaccount.com
+
+#### 使該 service account 具有存取指定 bucket 權限 (建立 + 查詢 權限): (once for specific service account)
+gsutil iam ch serviceAccount:$SERVICE_ACCOUNT:objectViewer,objectCreator gs://callme-bucket
+
+#### Deploy (run) service:
+gcloud run deploy py-helloworld-storage --service-account=$SERVICE_ACCOUNT \
+  --image asia-east1-docker.pkg.dev/$PROJECT_ID/my-repo-1/py-helloworld-storage --execution-environment gen2
+Allow unauthenticated invocations to [py-helloworld-storage] (y/N)?  y
+- 
+Service URL: https://py-helloworld-storage-f6srfekjlq-de.a.run.app
+
+#### 使此 service 具有 run.invoker 角色:
+gcloud run services add-iam-policy-binding py-helloworld-storage \
+  --member=serviceAccount:$SERVICE_ACCOUNT --role=roles/run.invoker
+
+#### 使該 service account 具有存取指定 bucket 權限 (建立 + 查詢 權限): (once for specific service account)
+(移動到上面)
+
+#### 建立 Trigger (是否可指定我們的 service account ? 經過實驗, 失敗)
+gcloud eventarc triggers create trigger-gcs-finalize \
+    --location=asia-east1 \
+    --service-account=$DEFAULT_SERVICE_ACCOUNT \
+    --destination-run-service=py-helloworld-storage \
+    --destination-run-region=asia-east1 \
+    --destination-run-path="/storage" \
+    --event-filters="bucket=callme-bucket" \
+    --event-filters="type=google.cloud.storage.object.v1.finalized"
+# 如果之前執行過 "gcloud config set eventarc/location asia-east1" 則可省略 --location=asia-east1
+
+#### Create Scheduler job
+gcloud scheduler jobs create http py-helloworld-storage-invoker --schedule "*/1 * * * *" \
+  --http-method=GET --uri=https://py-helloworld-storage-f6srfekjlq-de.a.run.app \
+  --oidc-service-account-email=$SERVICE_ACCOUNT --location=asia-east1
+# 有關 --uri=https://....., 請填寫 GCP 實際配給此 service 的 URL
+
+
+#### Test 1: 使用瀏覽器瀏覽上述 URL e.g. https://py-helloworld-storage-f6srfekjlq-de.a.run.app
+#### 可看到訊息: Hello World!
+
+
+#### Test 2: 將某檔案 '1-learning.txt' 貼到 bucket 'callme-bucket' 內, log 內將顯示例如:
+----------------------------------------------------------------------------
+Hello from storage: {'kind': 'storage#object', 'id': 'callme-bucket/1-learning.txt/1715497533187740', 
+'selfLink': 'https://www.googleapis.com/storage/v1/b/callme-bucket/o/1-learning.txt', 'name': '1-learning.txt', 
+'bucket': 'callme-bucket', 'generation': '1715497533187740', 'metageneration': '1', 'contentType': 'text/plain', 
+'timeCreated': '2024-05-12T07:05:33.191Z', 'updated': '2024-05-12T07:05:33.191Z', 'storageClass': 'STANDARD', 
+'timeStorageClassUpdated': '2024-05-12T07:05:33.191Z', 'size': '282888', 'md5Hash': 'jkqw10VTIp8/knPNzD2wPA==', 
+'mediaLink': 'https://storage.googleapis.com/download/storage/v1/b/callme-bucket/o/1-learning.txt?generation=1715497533187740&alt=media', 
+'crc32c': 'RDbXUw==', 'etag': 'CJzN0KjGh4YDEAE='}
+----------------------------------------------------------------------------
+
+#### 觀看 Log
+gcloud beta run services logs read py-helloworld-storage 
+  其它參數: 
+  --log-filters="severity>=ERROR"
+  --limit=<LIMIT>
+
+#### Clean Up
+gcloud scheduler jobs delete py-helloworld-storage-invoker --location=asia-east1
+gcloud eventarc triggers delete trigger-gcs-finalize --location=asia-east1
+gcloud run services delete py-helloworld-storage
+gcloud iam service-accounts delete $SERVICE_ACCOUNT
+gcloud artifacts docker images delete asia-east1-docker.pkg.dev/$PROJECT_ID/my-repo-1/py-helloworld-storage
+
+
+<END>

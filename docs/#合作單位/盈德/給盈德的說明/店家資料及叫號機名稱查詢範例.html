@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>XXX診所</title>
+</head>
+<body>
+    <h1>請查看 javascript console 輸出</h1>
+
+    <script>
+        var ws_socket = null;
+        function ws_onmessage(e) {
+            // 連線成功後，這裡會收到訊息            
+            try {
+                // 從控制台輸出訊息
+                var caller_info = JSON.parse(e.data);
+                console.log(caller_info);
+            } catch (err) {
+
+            }
+        }
+
+        function wsQueryCaller() {
+            var msg = {
+                type: "info", // 查詢叫號機訊息(勿更動)
+                customer:"astrocorp2024", // 客戶代碼(勿更動)
+                caller_id: "936" // 叫號機 ID, 一次只能一個 ID
+            };
+            ws_socket.send(JSON.stringify(msg));
+        }
+
+        function ws_onopen(e) {
+            wsQueryCaller();
+        }
+
+        function ws_onclose(e) {
+            ws_socket = null;
+        }
+
+        function ws_onerror(e) {
+            ws_socket = null;
+        }
+        function getCallerInfo() {
+            try {
+                if ((ws_socket === null) || (ws_socket.readyState === WS_CLOSED)) {
+                    ws_protocol = "wss";
+                    ws_socket = new WebSocket(ws_protocol + "://www.mainpi.com/.ws_mainpi/");
+                    ws_socket.onopen = ws_onopen;
+                    ws_socket.onmessage = ws_onmessage;
+                    ws_socket.onclose = ws_onclose;
+                    ws_socket.onerror = ws_onerror;                    
+                }
+            } catch (e) {
+                console.log("e:" + e.message);
+            }
+            return;
+        }
+         // Trigger caller info
+        getCallerInfo();
+    </script>
+</body>
+
+</html>

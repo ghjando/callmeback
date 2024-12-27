@@ -1,0 +1,26 @@
+=============
+json 資料格式
+=============
+{
+  "source_id": "mipa",
+  "action": "預約",
+  "user_id": "VTk1NTQ3YjdiOWIxMjI2ZjA4NTYzODI1YzdmOGRiNTMz",
+  "user_name": "陳筱玲",
+  "shop_id": "2046",
+  "shop_name": "中正耳鼻喉科診所",
+  "caller_id": "2046-0",
+  "caller_name": "一診",
+  "date": "20241102",
+  "time_period": "早上",
+  "time_begin": "0930",
+  "time_end": "1000",
+  "number": "18"
+}
+
+curl -H 'Content-Type: application/json' -d '{"source_id": "mipa", "action": "預約", "user_id": "VTk1NTQ3YjdiOWIxMjI2ZjA4NTYzODI1YzdmOGRiNTMz", "user_name": "陳筱玲", "shop_id": 2046, "shop_name": "中正耳鼻喉科診所", "caller_id": "2046-0", "caller_name": "一診", "date": "20241102", "time_period": "早上", "time_begin": "0930", "time_end": "1000", "number": "18"}' -X POST https://notify-user-306511771181.asia-east1.run.app/booking
+
+curl -H 'Content-Type: application/json' -d '{"source_id": "mipa", "action": "預約", "user_id": "VTk1NTQ3YjdiOWIxMjI2ZjA4NTYzODI1YzdmOGRiNTMz", "user_name": "陳筱玲", "shop_id": 2046, "shop_name": "中正耳鼻喉科診所", "caller_id": "2046-0", "caller_name": "一診", "date": "20241102", "time_period": "早上", "time_begin": "0930", "time_end": "1000", "number": "18"}' -X POST http://10.140.0.2:3100/booking
+
+curl -H "Content-type: multipart/form-data" -F 'source_id=mipa' -F 'action=預約' -F 'user_id=VTk1NTQ3YjdiOWIxMjI2ZjA4NTYzODI1YzdmOGRiNTMz' -F 'user_name=陳筱玲' -F 'shop_id=2046' -F 'shop_name=中正耳鼻喉科診所' -F 'caller_id=2046-0' -F 'caller_name=一診' -F 'date=20241102' -F 'time_period=早上' -F 'time_begin=0930' -F 'time_end=1000' -F 'number=18' -X POST http://10.140.0.2:3100/booking
+
+curl -H "Content-type: application/x-www-form-urlencoded" -d 'source_id=mipa' -d 'action=預約' -d 'user_id=VTk1NTQ3YjdiOWIxMjI2ZjA4NTYzODI1YzdmOGRiNTMz' -d 'user_name=陳筱玲' -d 'shop_id=2046' -d 'shop_name=中正耳鼻喉科診所' -d 'caller_id=2046-0' -d 'caller_name=一診' -d 'date=20241102' -d 'time_period=早上' -d 'time_begin=0930' -d 'time_end=1000' -d 'number=18' -X POST http://10.140.0.2:3100/booking

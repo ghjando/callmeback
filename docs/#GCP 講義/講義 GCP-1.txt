@@ -1,0 +1,2734 @@
+Google Cloud Platform (GCP) 講義
+
+Update: 
+2024/8/2 - 確認可透過命令自 Artificate registory 刪除指定 image (原始文字是說找不到命令)
+2024/7/18
+
+
+==========================================================================
+GCP 筆記
+==========================================================================
+目錄
+GCP 筆記 - Overview
+GCP 筆記 - Cloud Function
+GCP 筆記 - Cloud Run
+
+================================
+GCP 筆記 - Overview
+================================
+1. 運算
+    Compute Engine => 即 VM (簡稱 GCE = Google Compute Engine)
+        Target: VM
+        直接選擇 或自地端匯入(VMDK, OVF format)
+        CPU/RAM/DISK(HDD, Balanced Disk, SDD, Extreme Disk)
+        --
+        Migrate to Compute Engine
+            A host project for control procedures of migration.
+            (Multiple) Target project(s) for running VM.
+            Install "Migrate connector" on vSphere to help migrate
+        VM Manager
+            Features: cloud native, both Linux/Windows, access via Cloud Console / command line interface
+            OS intentory management
+            OS patch management
+            OS configuration management
+
+        VPC/Subnet => Virtual Private Cloud  指的是 VM 所在的 local 網路.
+            VPC 有一個名稱為 'default' 的網路.
+            Region, 例如 'asia-east1'
+
+        Firewall:
+            Ingress (in-bound): 所有進入 VM 的網路通訊
+            Egress (out-bound): 所有離開 VM 的網路通訊
+            tag: 使用 tag 表示一種 firewall configuration
+
+        Load Balancer:
+            HTTPS(http, SSL代管) vs. Others(TCP/UDP/IP)
+            Global (LB位於最靠外) vs. Regional (LB 位於 region 內)
+            External: with internet
+            Internal: in VPC/subnet
+
+        Instance Group:
+            Unmanaged Instance Group: 自己控制啟閉與規模縮放.
+            Managed Instance Group: GCP 可幫你自動啟閉與規模縮放. (state machine like database cannot use this)
+                Instance Group      Instnce Template       VM image
+                --------------      ------------------     -----------------
+                [VM instance1]-+
+                               |
+                [VM instance2] +--- [Instance template] -- [custom VM image]
+                               |
+                [VM instance3]-+
+
+        Cloud DNS:
+            提供一般 DNS 功能.
+            不提供註冊功能.
+
+        Cloud CDN:
+            相當於 data/file/media cache
+            只要 enable 即可啟動, 其餘 GCP 會自動 cache/dispatch.
+
+        Cloud NAT:
+
+        Cloud VPN:
+            地端 host 與雲端 VM 使用 VPN 連線.
+            地端需要特定的 VPN 硬體(廠牌).
+
+        Cloud Interconnect:
+            類似 Cloud VPN, 但拉實體專線, 不走 internet.
+
+    Google App Engine:
+        Target: program package (with many modules/files/media/data together)
+        Serverless, File packages, Language - Standard (Python, Java, PHP, Go, Node.js....) or Flexible (any)
+
+    Cloud Function:
+        Target: single program code and just run it
+        Limited programming language
+        (implied Cloud Run)
+
+    Cloud Run:
+        Target: docker image
+        Defect: no trigger
+
+    Google Kubernetes Engine (簡稱 GKE):
+        地端 Kubernetes 移動到 GCP 雲端
+
+2. 維運與監控服務
+    Cloud Build
+        Build to Container Image
+        CI/CD
+        Trigger to build
+        Cloud Build YAML
+
+    Artifact Registry
+        Store Container images
+        The function is built on Cloud Storage
+        可直接布署至 GKE, Cloud Run, VM
+        弱點掃描 (要$)
+
+    Source Repository
+        Git / Github / Bitbucket
+        搭配 Cloud Build 達到自動 Build/CI/CD
+
+    Cloud Monitoring
+
+    Cloud Logging
+
+3. 資料儲存服務
+    Cloud Storage
+        與 server 獨立開來的儲存空間
+        可 HA (故資料必須是 stateless)
+        有獨立的網址, 故可直接使用 link 引用.
+        存影像、影片、靜態 html
+        可以使用 local machine 去 mount 它
+
+    Filestore
+        即 NFS, 只是位於雲端
+        可以多部機器掛載同一個 NFS. (unlike Disk partition 只能被有一部機器 mount)
+        最小 1TB, 所以貴.
+
+    Cloud SQL
+        MySQL, PostgreSQL, MS SQL
+        只能用各 DB client app 去連, 沒有所謂先 ssh
+        自動擴充磁碟空間
+        auto HA/backup/recovery point
+
+    Spanner
+        企業級關聯式資料庫, 非常強大高效
+        特殊語法, 但與 ProgreSQL 較接近 (import easier)
+
+    Firestore (注意! 不是 Filestore)
+        Firestore 是最新版本的 Datastore. 目前稱為 Firestore in Datastore mode.
+        NoSQL database
+        Firebase 雲端化
+        支援 ACID
+        以儲存量、讀、寫分別計費
+        Datastore 是具備高度擴充性的 NoSQL 資料庫，適用於應用程式。這個資料庫會自動處理資料分割和複製作業，並能配合應用程式的負載自動調度資源，因此可用性和耐用性都相當高。Datastore 提供多項功能，例如 ACID 交易、類 SQL 查詢、索引等。
+        使用者可建立 Firestore in Datastore mode 來使用 Firestore 特性/功能.
+        未來, 所有的 Datastore databases 都會自動升級至 Firestore in Datastore mode.
+
+    Bigtable
+        HBase 相容的企業等級的 NoSQL database
+
+    Memorystore
+        全代管的 Redis 和 Memcached 記憶體內服務. 包括: Redis cluster, Redis, and Memcached. 使用這些產品完全相同的通訊協定.
+        NoSQL database in memory for APP cache
+        100% 相容 Redis, Memorycache
+
+4. 資料處理與分析服務
+    資料處理流程概述:
+    Data source (APP) --+-- 批次資料 -- Cloud ----- BigQuery ----+
+                        |             Storage                  |
+                        |                                      +-- BigQuery -- Looker Studio (reporting/presentation)
+                        |                                      |
+                        +-- 串流資料 -- Queue ----- Transform ---+
+                                      Pub/Sub    Dataflow/Dataproc/
+                                                 Dataprep/Data Fusion/
+
+                            | -- Cloud Composer --->
+
+    Pub/Sub:
+        無伺服器訊息佇列 (MQTT protocol)
+
+    Dataflow:
+        承接 Pub/Sub 來的資料
+        原 Apache Beam
+        可放一個客戶(資料處理)程式於此, 當有資料近來即透過此程式處理.
+        收到的資料處理完成即會被丟掉. (動態調整機器效能/availability)
+        目前僅支援 Java & Python
+
+    Dataproc:
+        各種資料工具, e.g Hadoop, Spark, Flink, Presto 的代管.
+        手動執行指令處理資料, 再寫到外部如 BigQuery 或 Bigtable
+        同上, 處理完即可丟掉資料或甚至關機, 節省成本.
+        與 Dataflow 的差異
+            Dataflow: 程式化資料處理
+            Dataproc: 人工資料處理
+
+    Dataprep:
+        自動對接收的資料進行分析，然後將資料分布、極值、資料有無等以圖形方式顯示出來。
+        並可以事先下達類似 Excel 函數的方式來告知如何處理資料, 如資料取捨或數值轉換等. 例如某欄位的值如果為 "空", 這一筆紀錄不要.
+
+    Data Fusion
+        也是資料處理, 且事先看不到資料.
+        利用圖形方式圖形來定義資料如何處理.
+
+    Cloud Composer
+        類似 Data Fusion, 但站在更高的維度. 其原生產品為 Apache Airflow, 的雲端產品化.
+        對所有資料的生命週期進行排程 (類似 cronjob, 但針對資料)
+        可用來監控並操作上述所有的 block 是否做動作以及狀態回應.
+        例如: Pub/Sub 接收資料到某個時候, 此 Cloud composer 即可將 Dataflow 喚醒來處理資料.
+
+    BigQuery:
+        企業等級: PB等級、分散式、結構化
+        目前以結構化資料為主, NoSQL 則是新推出.
+        雖有 insert, delete, update 語法類似 SQL, 但不適合在此使用, 且成本很高.
+
+    Looker Studio
+        視覺化 企業等級 BI (Business Intelligence) 工具.  前身名稱 Data Studio, 後被 Google 併購並改名.
+        顯示圖表、報表的專門工具.
+        此服務號稱免費, 但例如因為需要下達 SQL 去 BigQuerry 讀取資料, 這個 SQL 執行的費用會算在 BigQuery 上.
+        但如果去讀取 file, Ads, 試算表等資料, 則就真的完全免費.
+
+5. ML and AI
+    基礎流程 (範例: 辨識貓狗):
+        資料處理 (一堆貓狗照片/與標籤) -->
+        撰寫模型 (演算法、資料格式實作) -->
+        訓練模型 --> 給機器看/學習
+        評估模型 --> 拿新的貓狗圖片給機器辨識 validation
+        佈署上限 即讓其提供服務
+
+    基礎建設:
+        CPU, GPU/TPU, Memory
+        Marketplace: 第三方提供的機器學習平台/工作, 即一個個 VM image, 如 Jupyter, TensorFlow, 等.
+
+    Pre-trained AI:
+        Google 所事先準備、訓練好的通用 API (非 Model)
+        Vision AI (圖片辨識)
+        Video AI (影片辨識)
+        Speech-to-Text or vice versa
+        Natural Language API (可用來分析例如社群貼文, 正向/負向/謾罵/建設性...)
+        已經訓練、固化，無可繼續改良或進行特殊應用.
+        例如一張 X 光, Vision AI 只能告知這是一張 X 光, 但無法再告知這是否有某些毛病.
+
+    AutoML:
+        可進行專業學習. 使用者只要準備好有 labeling 的資料. 其餘的交給 AutoML.
+
+    Dialogflow:
+        Chatbot 的 google 版本. 支援多種 IM, e.g. Line.
+        支援語意分析.
+
+    Vertex AI:
+        有各種工具的開發環境. 但相關流程全部得自己來, 包括撰寫或引用演算法.
+
+    Generative AI Studio:
+        產生內容 (文字)
+        產生內容 (圖片)
+        文字與語音轉換
+
+    模型園地:
+        市面上已經訓練好的 Models 提供選擇與使用. E.g.Stable Diffusion, Facebook, ...
+
+6. 資訊安全
+    共同責任模型:
+        Tradition on-premises: 全部是客戶責任.
+        IaaS: Infrastructure as a service (Support to host and network + Visualization)
+        PaaS: Plastform as a service (Support to OS/Library)
+        SaaS: Software as a service (提供各式各樣軟體供直接使用): Software 以下是雲端營運商責任.
+    雲端廠商賠償, 一般僅限於 "停止服務時間", 例如三個小時機器無法啟動, 就賠償三個小時的機器時間給你.
+    如果是資料毀損, (除非是雲端所提供硬體壞掉 <-- 我的想法), 一般不賠.
+
+    Cloud Identity:
+        Google 的帳號管理系統.
+        類似 Windows AD
+        不一定會關聯 Gmail
+        < 50 人的公司可以已公司 domain 來申請. 將可產生 Organization (org) 管理整個組織.
+
+    IAM & Service Account: (於 Cloud Identity 之下)
+        IAM 即權限管理.
+        權限 (GCP 上約有 8K 種) grouped by 角色.
+        將一個或多個角色分配給使用者帳號帳號.
+        Service Account for proramming or host (非使用者/人) 的 account
+
+    Audit Log:
+        所有 service 可開啟其 Audit Log
+        依據資料量計費.
+
+    Security Command Center:
+        掃瞄並給予建議 (告知可能觸犯某項安全規範, e.g CIS, PCI, ISO 等)
+
+    Cloud IDS:
+        流量異常偵測 (偵測然後提出示警 only)
+        封包鏡像 (?)
+
+    Cloud Armor:
+        DDoS 防護與 WAF
+        一般放在 Load balancer 之前. 針對 request 進行檢查、過濾.
+        OWASP 十大資安風險. SQL injection, XSS 等內建防護.
+        自適應防護 (AI學習然後找出異常)
+
+    BeyondCorp:
+        零信任, 情境感知
+        Access Context Manager: 存取條件
+        Service Control: 存取服務分配
+        Cloud IAP: 無 IP 登入 VM
+
+    Cloud KMS:
+        金鑰生成與管理服務.
+        可直接使用 KMS 或匯入客戶自己的金鑰
+
+    Cloud DLP:
+        對進出系統的敏感資料進行檢查、遮罩、加解密/刪除等.
+        內建或自訂 infoType (個資格式)
+        例如針對進出資料, 即時呼叫 API, 檢查是否包含個資, 如果有, 可將其隱藏、加密、刪除等.
+
+
+================================
+GCP 筆記 - Compute Engine (簡稱 GCE)
+================================
+1. 建立執行個體
+   選擇機器規格、選擇 image from default/customer one
+   使用內定 service account: Compute engineer default service account
+   可透過所建立的外部 IP 來從外部連入.
+
+2. 自動產生/收縮 VM instances, 一定要從 "建立執行個體範本" 開始.
+    概述:
+        情境一:
+                         Ins. group
+        [HTTP load  ---> [VM #1]     <--- [Instance template](startup scripts pre-built)
+         balancer]       [VM #2]
+                     ...
+
+        情境二:
+                         Ins. group
+        [HTTP load  ---> [VM #1]     <--- [Instance template] <--- VM image <--- 自行上傳.
+         balancer]       [VM #2]
+                         ...
+
+    大致流程:
+        建立執行個體範本 (Instance template)
+        建立執行個體群組 (Instance group)
+        建立相關縮放設定 (bound to Instance group)
+
+    建立執行個體範本: 基本上與 "建立執行個體" 方式幾乎相同.
+        自 Start-scripts 建立:
+            在 進階選項 => 管理 => 自動化(開機指令碼) 輸入範例:
+            +--------------------------------
+            #!/bin/bash
+            sudo apt update
+            sudo apt install apache2 -y
+            +--------------------------------
+        建立主機 => 建立映像檔:
+            在 開機磁碟 => 自訂映像檔 => 選擇映像檔專案(需事先建立)
+
+    建立執行個體群組 (Instance group)
+        Instance template: 選擇某執行個體範本名稱.
+        單可用區/多可用區.
+        自動配置 (自動增縮、僅自動增、完全手動) + instance 數量上下限
+        Autoscaling signal: 增加的條件, e.g. CPU > 70%
+        初始化期間: 開機後 delay 多久後視為生效 (seconds).
+        如果設定自動修復執行個體, 尚需要設定 "健康狀態檢查", 做為自動修復的依據, e.g.
+            ping 或發動 TCP 連線 timeout ? 秒
+            或使用 HTTP 檢查 (內定必須回應 200)
+        通訊埠對應 (設定對應名稱以及 ports, e.g. "http" "80")
+
+3. Load balancer with 執行個體群組
+    網路 -> 建立 負載平衡
+        HTTP/S 負載平衡器
+        TCP 負載平衡器
+        UDP 負載平衡器
+    對外或對內
+    全域性或區域性
+        全球性 (新, 較複雜)
+        全球性 (傳統, 較簡單)
+        區域性
+    前端 - 前端網路/port=443 或 80, 如果是 443, 則需要設定憑證.
+        設定憑證時需要輸入 domain name, 且此 domain name 必須已經有效, 否則憑證無法建立.
+        (我已自 GoDaddy 採購 prontotek.online, NT$37-)
+    後端 - 設定後面 services 標的(例如某執行個體群組), 設定 port 對應(443->80), 流量分配方式, 設定 "健康狀態檢查" - 不分配流量給不健康的 VM
+        這邊的 "健康狀態檢查", 與執行個體群組的 "健康狀態檢查", 概念不同. 前者決定是否分配流量, 後者決定是否重啟 選擇同一個沒問題.
+    主機與路徑規則: 如果後面有 "多個執行個體群組"，不同類型的服務, 就要設定.
+    如果前端使用 http (port 80), 則可以找一部機器透過 "siege" 進行壓力測試.
+    因為執行個體群組所產生的 VM 僅接受 LB 連入, 不直接對外, 故可考慮完全不需要外部 IP. 提高安全並省一些錢(IP本身也要$$).
+        Networking => Network interfaces => External IPv4 address =改成=> None (not Ephemeral(臨時))
+        Networking => Network interfaces => Firewalls => Uncheck Allow HTTP traffic
+        但上述設定, 將 health check for HTTP, 80/TCP 也擋掉了, 故要加上一防火牆規則, 允許如下
+            Enable Ingress
+            Health check source IP: 35.191.0.0/16,130.211.0.0/22
+
+4. 建立監視指標
+    Monitoring (監控) => Metric Explorer
+    選擇某一監視指標目 + optional filter (例如選 "vm instance name" equal "instace-1", 則只顯示 instalce-1 的指標)
+    按下 Save  (建立新 dashboard name 或選擇某一) 之後即可在總攬內選擇此 dashboard name
+    如果將多種監視指標都加到同一  dashboard name, 則該 dashboard 就可以顯示多個圖表.
+
+5. VPC (Virtual Private Cloud)
+    即 project-dependent private network
+    事先有一內定 VPC 名稱 default
+    建立於同一個 VPC 內的 VPC, 可以使用內部 IP 互 ping. 反之位於不同 VPC 的 VM 則不可使用內部 IP 互 ping. (內部網路完全獨立)(只能透過外部 IP)
+    建立一新 VPC
+        一般需要自行給一個防火牆規則 (e.g. 名稱 my-fw-in-ssh, 並於 Protocol and ports 內設定允許 ssh, 於 Others 內輸入 icmp 給此 VPC (有 "特定標記"的 VM (見下述), 或直接給下轄所有 VM)
+    當建立 VM 時, 如果不想建立於 'default', 則必須於 進階 => 網路介面 (Network interfaces) => 選擇 e.g. my-vpn-1
+
+6. 防火牆
+    GCP 的防火牆基本上依據 VPC. 原本目錄安排位於 VPC Network => Firewall, 後來改至 Network Security => Cloud Firewall
+    Hosts of internet with VPC
+    All VM IN VPC
+    Ingress(income), Egress(outcome)
+    Deny, Allow
+    Protocol: ssh, rdp, www, icmp, ....
+    Priority: smaller number first (0~65535)
+    標籤式管理:
+        例如某 firewall rule 的目標標記 "ssh", 然後於建立/編輯某 VM, 設定 網路介面" => "網路標記", 輸入 "ssh"
+    Trouble shooting: 如果要監視網路流動, 從防火牆規則著手.
+        於 Firewall rule 內對對指定開啟 log
+        然後直接於指定 Firewall rule 內的上面可以點選觀看 log
+
+7. IAM
+    角色 (Role)
+        基本角色: 不分資源, 權限較大
+            擁有者, eveything
+            編輯者: 可看、改全部，除了不能改權限
+            檢視者: 可看全部但不能改
+            瀏覽者: 只能看基本資料.
+            針對某主體 (人(e-mail)/群組/網域/服務帳戶), 設定其基本腳色.
+        預先定義角色: 針對特定資源的角色
+            針對某主體, 指定其可以控管某資源/服務. 例如 Computer Manager (此角色可以管理所有虛擬機器、防火牆、VPC、LB 等, 但例如 cloud storage, cloud SQL 等不可).
+        自訂角色: 自己設計權限規則.
+            可從既有角色複製, 然後按下加入權限, 來創建新角色.
+    當授權給某主體 (Principal) 完畢, 可以將 URL 傳遞給該主體, 讓該主體存取該 URL.
+
+8. 帳單管理
+    信用卡1 ----+
+               |
+    信用卡2 ----+----> 帳單帳戶 -----+----> 專案1
+                                  |
+                                  +----> 專案2
+
+9. 專案管理
+    將專案整個停掉
+        1. IAM and Admin => Settings (設定) => 選擇 SHUT DOWN (關閉) => Deleting pending 狀態, 資源會依然保留, 一個月後才會真正刪除.
+        2. Billing (帳單) => Account management (帳戶管理) => Actions => Disable billing => Deleting pending
+        3. 將信用卡資料移除:
+           Billing (帳單) => Payment settings (付款設定) => Remove, 但仍至少要保留一個 credit card. (Google 強迫要至少保留一張信用卡資料)
+           除非如下, 將整個付款機制刪除.
+           至 Google pay => 設定 ..... 將 credit card 移除.
+    觀看我擁有權限的專案
+        專案list => 點選齒輪.  (可點選下面 Delete pending projects, 來看已經下令刪除但尚未真正刪除的專案)
+    機構
+        類似 AD, 可以建立一階層式機構, 將專案掛進某階層, 並可對各階層進行權限管理.
+        特徵包括:
+            Organization policy,
+            Shared VPC for several projects in the same organization.
+            Security Command Center
+            BeyondCorp
+        免費的 google e-mail 並無法提供機構. 故另外的方式:
+            購買 Google Workspace
+            透過 Google Identity 來免費使用且建立機構.
+    建立專案
+        IAM & Admin => Manage resources => 建立專案
+
+10. Cloud Storage
+    Storage class (種類)     定義天數下載資料定義 .
+        Standard storage    always hot
+        Nearline storage    30 days 下載資料一次免費, 超過要加錢
+        Coldline storage    90 days 下載資料一次免費, 超過要加錢
+        Archival storage    365 days 下載資料一次免費, 超過要加錢
+        存放(上傳) 資料至 storage 不用錢, 下面三種取得(下載) 資料超過限制則要額外計費 .
+        存取時都會計算流量費, 但 "拿" 這件事情的費用依據上述定義。
+    應用概念
+        Web VM 存放 HTML/Configuration 即可. Video/Image/Audio media 可放在 storages.
+    儲存物件行為
+        物件生命週期管理: 可定義條件, 自動調整儲存種類 (e.g. > 30 day, change to Nearline), 以及可定義多少時間刪除.
+        物件版本管理: 重複上傳同一檔案, 舊版本保留 (storage 費用)
+        資料保留政策: 於定義時間內, 不可刪除.
+        物件訴訟保留: 設定保留機制, 防止物件遭到刪除.
+        客戶自行管理的加密金鑰: Key Management Service (KMS). 可對資料加密.
+    建立
+        Cloud Storage => Buckets => Create
+        唯一名稱 (ID)
+        Labels (optional)
+        Choose where to store
+            Multi-region vs. Dual-region vs. Region
+        Storage Class 見上述. 也可選由 GCP 自動判斷/調整該物件 class (Autoclass)
+        Choose how to control access to objects
+            Uniform: 賦與角色對此 Bucket 的權限, 所有檔案依此.
+            Fine-grained: 個別檔案可精細調整.
+        Choose how to protect object data
+            [] object versioning
+            [] Retention (keep data non-deletable for defined days)
+
+        gsutil cp hello.txt gs://chance-test-bucket-1
+
+11. 服務帳號
+    定義存取某一或某些服務的特殊帳號.
+    IAM & Admin => Service Accounts => Create service account, 例如: write-to-chance-test-bucket-1@...
+    建立後, 至需要連結的 service(s) 進行個別指定, 例如某 Cloud Storage 的 Bucket 要可寫入,
+        則至該 Bucket, 然後於 PERSSIONS 加入此服務帳號並設定相關的存取權限. 如下:
+        Cloud Storage => Bucket => (pick) => PERMISSIONS => +GRANT ACCESS =>
+            New principals 輸入 write-to-chance-test-bucket-1@...
+            Assign Roles, 選擇 Cloud Storage => Storage Admin
+    然後在建立 VM 時, 於 Identity and API access => Service account, 設定成 write-to-chance-test-bucket-1@...
+    然後就可以於該 VM 內執行類似如下命令, 將某檔案拷貝至 cloud storage
+        gsutil cp hello.txt gs://chance-test-bucket-1
+
+12. 結合上述 10, 11 的應用
+    於 VM 安裝一 BT client，並下載至 Cloud storage
+    重點是防火牆, 需要開啟 income ports TCP/22, TCP/9091, 並只允許來自家中的電腦可存取.
+    權限方面關鍵動作:
+        建立一服務帳戶
+        建立一個 Cloud storage bucket, 於 Permission 內加入上述服務帳戶, 並設定權限為 storage admin (見上述 11.)
+        於建立 VM 時, 於此 VM 的 Identity and API access => Service account 設定為上述服務帳戶.
+    網路方面關鍵動作:
+        於建立 VM 時, 於此 VM 的 Advance options => Networking => Network tags 輸入字串 'transmission'
+        建立一個 Firewall rule (防火牆規則), 設定 Ingress 9091, 然後 Target tags 'transmission'
+    安裝 Transmission
+        sudo apt-get update  (取得最新軟體版本清單/與連結)
+        sudo apt-get install software-properties-common -y
+        sudo add-apt-repository ppa:transmissionbt/ppa -y
+        sudo apt-get install transmission -y    <-- server
+        sudo apt-get install transmission-cli transmission-common transmission-daemon -y  <-- client/UI
+        驗證:
+        transmission-gtk --version   應該要顯示版號, e.g "transmission-gtk 3.00 (bb6b5a062e)"
+    停止服務, 修改設定檔, 重啟服務.
+        sudo service transmission-daemon stop
+        或 sudo systemctl stop transmission-daemon
+        sudo vim /var/lib/transmission-daemon/info/settings.json
+        修改 "rpc-*" 部分如下:
+            rpc-host-whilelist-enabled 必須為 true
+            rpc-password 修改成要的密碼
+            rpc-whilelist "127.0.0.1,192.168.*.*,..."  <- 範例:
+        sudo systemctl start transmission-daemon
+    啟動網頁
+        http://bt.prontotek.online:9091
+        username: transmission
+        password: *****
+        輸入種子 (上傳種子檔案或種子所在超連結 )
+        下載至 /var/lib/transmission-daemon/download/   (依據上述設定檔內的 "download-dir")
+        下載 e.g. 至目錄
+        /var/lib/transmission-daemon/download/some-essey/*
+        然後手動傳遞至 Cloud storge  <== 這樣有啥意義??
+        gsutil cp -r /var/lib/transmission-daemon/download/some-essey gs://chance-test-bucket-1
+
+13. 建立預設 SSH key
+    預設 SSH 22 允許所有 IP 來源. 會被駭客進行嘗試.
+    應該要限縮, 但注意! GCP 網頁上的 "SSH" 按鈕的來源 IP 是浮動的.
+    建立 (以 MAC 或 Linux client PC 為例):
+        MAC: ssh-keygen -t rsa -f ~/.ssh/id_rsa -C <username> -b 2048    (-f ~/.ssh/id_rsa 應該可省略吧?)
+    於該 VM instance
+        Security and access => SSH Keys => 貼上產生的 public key (上述 ~/.ssh/id_rsa.pub 的內容)
+    (optional: 建立一個新的 ssh firewall, target tag 為 'ssh-limit-source', 設定 VM 的 network tag 為此,
+     然後將原來的 ssh 規則移除. 原來的 ssh 規則允許所有 IP 連入)
+    將 SSH public key 設定到上層, 使專案內的所有 VM 都能自動安裝此 public key.
+        Compute Engine => Metadata (中繼資料) => SSH KEYS (安全殼層金鑰) => ADD SSH KEY button
+        貼上上述 public key. 完成.
+
+14. Cloud shell
+    使用命令列下指令取代 UI 操作.
+    Features:
+        其內可存放 user 資料, 大約至多 5G. 只要每 120 天豋入一次, 就不會刪除. 但如果超過, 則會刪除.
+        但如果有安裝軟體, 則只要關閉就會解除安裝, 即每次都會復原應用程式環境.
+        每次重新連線都會有新 IP, 然後環境都是重置的. 但會保留之前使用者建立的檔案.
+    Cloud shell 只有一個 instance, 不論你有多少專案.
+    所以進入 Cloud shell 後, 可透過如下命令切換專案:
+        gcloud config set project <project id>
+    所有 UI 的操作, 例如: 建立一台 VM instance, 都可在該 UI 下面查詢對應指令碼.
+    直接於 Cloud shell 內執行對應指令碼, 相當於 UI 動作, 但可事先編輯、更正確快速、批次處理.
+    範例:
+        gcloud compute instances create instance-1 --....(約1000字)
+        gcloud compute instances delete instance-1 --zone us-central1-a
+        gcloud compute firewall-rules create my-firewall-rule1 --directi...
+        gcloud compute firewall-rules delete my-firewall-rule1
+        gcloud storage ls   條列本專案有哪些 buckets
+        gcloud storage ls gs://<bucket-id> 條列該 buckets 內所有檔案.
+        gcloud compute ssh instance-1     相當於直接於 UI 上按下 SSH 按鈕 (不需要事先建立 SSH key).
+                                          注意防火牆, 因為 Cloud shell 的 IP 會浮動.
+    可以上傳/下載檔案至/自此 Cloud shell (右上角有 ...  然後選擇裡面的上傳/下載.
+    Cloud shell 相關 log
+        Logging => Logs explorer (記錄檔探索工具)
+
+15. Google Cloud CLI  (Google Cloud SDK)
+  - 使你的 PC 直接變成 Cloud shell
+    安裝說明: https://cloud.google.com/sdk/docs/install-sdk
+    可以在你的 cmd 下執行 gloud storage ls, gsutil cp xxx.txt gs://<bucket_id> 等命令.
+    也可以下載 Google Cloud Client Libraries (for many programming languages)
+        https://cloud.google.com/apis/docs/cloud-client-libraries
+        Google Cloud Client Libraries 能讓程式直接操作 GCP
+  - 安裝於 Ubuntu
+    $ sudo apt-get update
+    $ sudo apt-get install apt-transport-https ca-certificates gnupg curl
+    # import public key
+    $ curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+    # Add the gcloud CLI distribution URI as a package source.  (注意! 避免重複)
+    $ echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+    $ sudo apt-get update && sudo apt-get install google-cloud-cli
+  --
+    重要命令 (初始化):
+        # gcloud init [--console-only]
+        To continue, you must log in. Would you like to log in (Y/n)? Y
+        Pick cloud project to use:
+        [1] [my-project-1]
+        [2] [my-project-2]
+        ...
+        Please enter your numeric choice:
+        ...
+    列出目前 account:
+        # gcloud auth list
+    列出目前設定:
+        # gcloud config list
+        account = example-user-1@gmail.com
+        disable_usage_reporting = False
+        project = example-project
+    列出相關資訊, 例如設定儲存位置等:
+        # gcloud info
+    變更 project/zone/...:
+        # gcloud config set project <PROJECT_ID>
+        # gcloud config set compute/zone <ZONE_NAME>
+    每隔一段時間, 應該執行如下來更新/修正 GLI:
+        # gcloud components update
+
+16. Cloud SQL
+    Google 代管的 RDBMS, "只有" MySQL, PostgreSQL, MSSQL  (MongoDB 不在此, 而是在 Market place)
+    需選擇資料庫資料空間, 但可點選自動擴展.
+    可選擇 HA, GCP 自動安排一個同步的資料庫, 並在主資料庫出問題時自動接管 (IP 也相同, 對前端完全透明).
+    可選擇 Backup schedule/conditions, 然後只能在 UI 上清單內選擇還原哪一個, 備份資料無法下載.
+    需要 enable sqladmin API
+    可使用 Cloud shell 寫入資料
+        gcloud sql connect test-1     test-1應該是資料庫ID
+    可使用外部資料庫 client 端連線.
+    建立資料庫執行個體:
+        SQL => 建立執行個體 => 選擇資料庫, e.g. MySQL =>
+        執行個體ID, e.g. my-mysql => 密碼(可空白) => ...
+        => 如果要 HA, 則必須選擇 "多可用區", 然後選擇兩個不同的 zones
+    透過 Cloud shell 連線範例:
+        $ gcloud sql connect my-mysql
+        (接下來詢問帳密, 如果成功, 直接進入 mysql client 提示字元)
+    資料庫 VM 實體內定使用 UTC
+
+17. Cloud CDN
+    必須有 Load balance 才能啟用
+    於 LB => 後端設定 => 勾選啟用 Cloud CDN 即可   (為何放在後端設定?)
+
+================================
+GCP 筆記 - Kubernetes Engine (簡稱 GKE)
+================================
+1. Kubernetes Engine  (簡稱 GKE)
+    YAML 檔用來定義需求  =====> Kubernetes 維持該需求.
+    Step 1: manually write wish.yaml:
+        Define APPs
+        Define Services
+        Define LB
+    Step 2: kubectl apply -f wish.yaml
+    Done
+    快速佈署示範:
+        Kubernetes Engine => Clusters
+        Deploy container
+        (其餘按下 continue)
+        done
+    記得要刪除, 否則很花錢.
+
+2. Container image
+    Docker = 一種 container management 軟體.
+    於 Cloud Shell 上說明 (已經內建 docker runtime)
+        Step 1: 撰寫 node.js source, 並 node <source> 進行測試.
+        Step 2: 撰寫 Dockerfile.
+        Step 3: 於 Artifasts registery 建立 repository (映像檔儲存庫).
+        Step 4: 建立並測試 Docker container image.
+        Step 5: Push image 到上述 repository 內.
+    Step 1:
+        開啟 Cloud shell
+        程式碼:
+        - - - - - - - - - -
+        var http = require('http')
+        var handleRequest = function(request, response) {
+          response.writeHead(200);
+          response.end("Hello world from Nodejs!!");
+        }
+        var www = http.createServer(handleRequest);
+        www.listen(8080);
+        - - - - - - - - - -
+    Step 2: 建立 Docketfile
+        - - - - - - - - - -
+        FROM node:6.9.2
+        EXPOSE 8080
+        COPY server.js .
+        CMD node server.js
+        - - - - - - - - - -
+        打包此 Container image 之前, 必須先執行如下步驟.
+    Step 3: 於 Artifact registry 內建立一 repository
+        CI/CD => Artifact Registry => + CREATE REPOSITORY
+        Name 例如 nodejs-repos-1
+        Format 選 Docker
+        Mode 選 Standard
+        Location type 依據需求
+        (其餘可以不變)
+        按下 CREATE 來建立:
+            例如我建立的 nodejs-repos-1, 路徑如下:
+            asia-east1-docker.pkg.dev/my-second-project-411408/nodejs-repos-1
+        按下 SET INSTRUCTIONS (設定操作說明)
+            執行所描述指令於 Cloud CLI (SDK), 目的是設定 credential. 使 client 能存取 asia-east1-docker.pkg.dev
+    Step 4: 建立映像檔並於 local 執行看看.
+        於 cloud shell, 剛才 source code/Dockerfile 所在目錄, 執行如下:
+            docker build -t asia-east1-docker.pkg.dev/my-second-project-411408/nodejs-repos-1/nodejs-web:v1 .
+            (後面要有 .)
+            可以看到 -t 表示標籤/container image 的完整名稱,
+            完整名稱必須包括 repository 完整路徑加上一個名稱,
+            後面可選擇性加上一 user tag, 例如 ":v<version>" 可用來方便版本控制.
+            打包後的 image, 不知道放在哪裡? (還不會被上傳至 repository 內)
+        於 cloud shell 內執行該 container image
+            docker run -d -p 8080:8080 asia-east1-docker.pkg.dev/my-second-project-411408/nodejs-repos-1/nodejs-web:v1
+            -d 表示於背景執行
+            -p 8080:8080 表示對外 open 8080(左) 轉到 8080(右) 內部 listen
+            後面即該 tag (container image 完整名稱)
+        條列執行中的 container, 以及將其關閉:
+            docker ps
+            docker stop <contain_id>
+            docker kill <contain_id>
+    Step 5: 將 Container image 上傳至 repository
+        docker push asia-east1-docker.pkg.dev/my-second-project-411408/nodejs-repos-1/nodejs-web:v1
+
+3. 使用五條指令建立 STANDARD HTTP Load balancer 環境
+    概述:
+        1. 建立 GKE Cluster
+        2. 取得 Credentials
+        3. 建立 Deployment 物件 (容器)
+        4. 建立 Service 物件
+        5. 建立 Ingress 物件 (http LB)
+    建立 GKE cluster:
+        gcloud container clusters create gke-1 --num-nodes=2 --machine-type=n1-standard-1 --zone=asia-east1-b
+        後面指定 zone, 所以上述例子, 會在該 zone 建立兩個 nodes.
+        如果後面指定 --region=asia-east1, 因為該 region 含三個 zones, 所以會在各 zone 個建立兩個 nodes, 故總共建立 6 個 nodes.
+    取得 Credentials:
+        gcloud container clusters get-credentials gke-1 --zone=asia-east1-b
+        表示目前指向/選擇 gke-1 這個 GKE cluster. 之後的 kubectl 命令都是針對此 cluster.
+        gcloud container clusters vs. kubectl
+            gcloud container clusters: 針對 GKE cluster 外部管理, 如果增刪 cluster, 調整 node 數量. 需要指定 cluster name/ID
+            kubectl: 針對目前所選擇之 cluster 內部, 例如執行 YAML, 建立 POD, Deployment, Service, Ingress. 無須指定 cluster name/id
+    建立三個 YAML 檔案, 分別 for Deployment 物件, Service 物件, 以及 Ingress 物件.
+        例如: web1-deployment.yaml, web1-service.yaml, ingress.yaml
+    建立 Deployment 物件:
+        撰寫 web1-deployment.yaml
+- - - - - - - - - -
+#web1-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web1
+  namespace: default
+  labels:
+    app: web1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      run: web1
+  template:
+    metadata:
+      labels:
+        run: web1
+    spec:
+      containers:
+      - image: asia-east1-docker.pkg.dev/my-second-project-411408/nodejs-repos-1/nodejs-web:v1
+        imagePullPolicy: IfNotPresent
+        name: web1
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+- - - - - - - - - -
+        說明
+            格式、空白、大小寫，不可以有一點錯誤.
+            原則上照著填就對了.
+        kubectl apply -f web1-deployment.yaml   <-- 執行並啟動 deployment (POD) 物件.
+        查詢:
+        $ kubectl get deployments
+        NAME    READY     UP-TO-DATE    AVAILABLE    AGE
+        web1    3/3       3             3            1m23s
+        可看到有三個 PODS 在跑.
+        $ kubectl get pods
+        NAME                   READY  STATUS    RESTARTS   AGE
+        web1-546dd9754b-5vckk  1/1    RUNNING   0          1m30s
+        web1-546dd9754b-bk6w5  1/1    RUNNING   0          1m30s
+        web1-546dd9754b-ftxt5  1/1    RUNNING   0          1m30s
+        ....
+    建立 Deployment 物件:
+        撰寫 web1-service.yaml
+- - - - - - - - - -
+#web1-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: web1
+  namespace: default
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    run: web1
+  type: NodePort
+- - - - - - - - - -
+        說明
+            這個 type 有三種. 因為我們要接 LB, 所以必須選 "NodePort"
+        kubectl apply -f web1-service.yaml
+        查詢:
+        $ kubectl get services
+        NAME       TYPES        CLUSTER-IP      EXTERNAL-IP     PORT(S)         AGE
+        kubernetes ClusterIP    10.104.0.1      <none>          443/TCP         21m
+        web1       NodePort     10.104.4.17     <none>          8080:30230/TCP  36s
+    建立 Ingress 物件
+        撰寫 ingress.yaml
+- - - - - - - - - -
+#ingress.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-ingress
+spec:
+  rules:
+  - http:
+    paths:
+    - path: /*
+      pathType: ImplementationSpecific
+      backend:
+        service:
+          name: web1
+          port:
+            number: 8080
+- - - - - - - - - -
+        kubectl apply -f ingress.yaml
+
+4. 使用五條指令建立 AUTOPILOT HTTP Load balancer 環境
+    與 STANDARD 建立方式完全一樣, 唯建立 cluster 的命令為 'create-auto', 如下:
+    gcloud container clusters create-auto gke-auto-1 --num-nodes=2 --machine-type=n1-standard-1 --zone=asia-east1-b
+    另外不同之處,
+        就是在未匯入 deployment 前, nodes 不會建立起來.
+
+5. Marketplace, 以 Wordpress 為例
+    使用 Google 而非其他官方, 最大的好處是彈性 - 單獨提整、掌控性.
+    選擇 Wordpress
+    工具 => 部屬 => 選 CPU/Memory ... => 完成.
+    如果是單一機器對話服務, 則可以在虛擬私有雲網路 => IP: 設定固定 IP
+
+
+
+================================
+GCP 筆記 - Cloud Function
+https://cloud.google.com/functions/docs/concepts/overview
+================================
+1. 概述:
+  - Target:
+    Single program code and just run it
+    Serverless
+      所有 VM/CPU/MEM, 需要啟動多少 function instances, 都由 GCP 管理.
+    Stateless  <-- 重點.
+      多個 requests 由系統分配至某 instance. 無法事先設定或限制會給哪一 instance.
+      除非連接 Database/NFS 等 presistent 檔案系統.
+    Limited programming language: Node.js, Python, Go, Java, PHP, .NET Core
+    內部由 Cloud Run 與 Eventarc 實作.
+  - Auto-scaling behavior:
+    需要啟動或關閉 instances, 基本上完全依據 requests. 所以如果沒有任何 requests, 可能會沒有任何 instance 執行.
+    可能! 突然大量 requests 到來, 但因為 GCP 來不及開啟 instances 而導致來不及處理 requests 因而導致 timeout (HTTP 500). 所以設定上, 可以設定其他的啟動條件.
+    可以設定 minimum 以及 maximum number of instances. 以及 memory limit.
+  - A new function instance is started in two cases: 啟動 new instance 的情況:
+      When you deploy your function. 布署時候會啟動一個 instance.
+      When a new function instance is automatically created to scale up to the load, or occasionally to replace an existing instance. 依據需要啟動或置換 instance 時.
+  - 1st vs. 2nd generation:
+    https://cloud.google.com/functions/docs/concepts/version-comparison
+    第一代: 一個 request 同時間只使用一個 cloud function instance 來應付.
+      - Max timeout: HTTP request            9min
+                     Event trigger function  9min
+      - Max concurrent requests: only 1
+    第二代: 允許一個 instance 同時 handle 多個 requests. (對於有應付多個 requests 能力的 source, 使用此有效率的多)
+      - Handle large streaming data
+      - Larger instance size (in-memory, compute-intensive, and parallel workloads)
+      - Improved concurrency
+      - Traffic management
+      - Eventarc integration - native support 90+ event source.
+      - Broader CloudEvent support - Support for industry-standard CloudEvents in all language runtimes. (使各 languages 具有一致性 (在處理 events 上?))
+      - Max timeout: HTTP request            60min
+                     Event trigger function  9min
+      - Max concurrent requests: up to 1000  (--concurrency=)
+  - Images 必須先部署至 Artifact Registry.
+    布署時, 可以設定 minimum 以及 maximum number of instances. 以及 memory limit.
+  - Connect and extend cloud sevices
+    Listen and respond to a file upload to Cloud Storage, a log change, or an incoming message on a Pub/Sub topic.
+  - 整合 Google service account credential.
+  - Supported by many Google Cloud client libraries for more integration with other services.
+  - Events and Triggers:
+    Events, eg.: data changed in a database, files added to or updated in a storge system, or a new virtual machine was created, etc.
+    Binding a function to certain triggers of events to react on events.
+    Use cases:
+      - Listen and respond to Cloud Storage events such as when a file is created, changed, or removed.
+      - HTTP trigger (Web hook from Line, GitHub, Slack, Stripe, etc.)
+      - Lightweight API
+      - Mobile backend: Listen and respond to events from Firebase Analytics, Realtime Database, Authentication, and Storage.
+      - IoT: tens of thousands of devices streaming data into Pub/Sub, thereby launching Cloud Functions to process, ...
+  - 儘量避免一直停停開開 instances, 降低冷啟動機率 (code start), 故設計上 instance 儘量不要結束 terminate.
+    - 設定最小 instance 個數.  --min-instances=<MIN_INSTANCE_LIMIT>  (--clear-min-instances 來回到內定)
+  - Function scope vs. Global scope:
+    --------------------------------------------------------------------
+    import time
+    import functions_framework
+
+    # Placeholder
+    def heavy_computation():
+        return time.time()
+
+    # Placeholder
+    def light_computation():
+        return time.time()
+
+    # Global (instance-wide) scope
+    # This computation runs at instance cold-start
+    # 只會在 code start 時執行一次.
+    instance_var = heavy_computation()
+
+    @functions_framework.http
+    def scope_demo(request):
+        """
+        HTTP Cloud Function that declares a variable.
+        Args:
+            request (flask.Request): The request object.
+            <http://flask.pocoo.org/docs/1.0/api/#flask.Request>
+        Returns:
+            The response text, or any set of values that can be turned into a
+            Response object using `make_response`
+            <http://flask.pocoo.org/docs/1.0/api/#flask.Flask.make_response>.
+        """
+
+        # Per-function scope
+        # This computation runs every time this function is called
+        function_var = light_computation()
+        return f"Instance: {instance_var}; function: {function_var}"
+    --------------------------------------------------------------------
+  - Execution guarantee
+    For any single event:
+      - HTTP functions will be invoked at MOST once. Caller should take charge of error handling and/or retry
+      - Event-driven functions will be invoked at LEASE once. 因為沒有 caller, 所以系統為了確保 event 最大限度不會遺失, "有可能" 會對同一 event 發出好幾次通知 (到 event-driven function).
+        如果 Cloud function 針對此回應錯誤, 則系統不會再通知, 除非 "retry on failure" 被 enabled.
+        重要!! 為了使 event-driven function 能正確的應付 event, 要了解並應對同一 event 被多次通知的可能.
+        https://cloud.google.com/functions/docs/bestpractices/retries#make_retryable_event-driven_functions_idempotent
+  - 當觸發 function 並返回, 該 function instance 就不會有任何 code 被執行.
+    例如某 function 產生 thread 後就離開了, 但該 thread 會在 function 離開時就停止執行.
+    導致可能: 如果又有 request 進來, 之前建立的 thread 又繼續執行. 發生不可預測情況.
+  - 承上, 有關 event-driven functions 的 retry:
+    https://cloud.google.com/functions/docs/bestpractices/retries
+    Why event-driven functions fail to complete 原因:
+      - 以系統角度, 當 event 發生, 系統會盡力觸發到 function, 但有非常稀有的機率, 有被丟棄的可能.
+      - 以 function 自身角度, 因為發生錯誤觸發 exception 而導致執行不完整而離開:
+        - 自身 bug
+        - 自身進行某事但 timeout
+        - 自身丟出 exception
+    內定不會進行 retry: 任何上述原因 (觸發 function 但因為發生錯誤而結束), event 就會被 dropped (不會 retry).
+    設定成會 retry: 則會不斷 retry, 直到成功, 或已經 timeout (retry window expires, 此 window 於 2nd gen 為 24 hour  (1st gen 為 7 day))
+                  但如果程式 bug, 就可能被一直呼叫. (randomly 10~600 sec)
+                  故 retry 必須針對沒有 bug 的 function, 以及錯誤非常態發生 (e.g. 網路斷線) 的情況.
+    Enable/disable retry 方式:
+      $ gcloud functions deploy <FUNCTION_NAME> [--retry] ...    <-- 有 --retry 則 enabled, 無(內定)則 disabled
+    實務上, 針對 retry enabled 的情況, 應該有如下認知:
+      - 在 function source 完成偵錯之後才 enable retry.
+      - 僅針對非常態/偶然會發生的錯誤進行 retry.
+      - 傳入的 event object, 會含有事件發生 timestamp. 可以檢查此針對太舊的 event 捨棄. (> 10 sec. 可假設其是 retry)
+      - 發生 unhandled exception, 即會觸發 retry. 故程式碼應該盡可能掌握所有 exception, 完全控制是否要發生 retry. (如果要求 retry, 就可 raise exception)
+      - 程式直接得知相關設定來進行處理:
+        --------------------------------------------------------------------
+        ...
+        # Retry based on a user-defined parameter
+        try_again = data.data.get("retry") is not None
+
+        try:
+            raise RuntimeError("I failed you")   # 故意製造錯誤.
+        except RuntimeError:                     # 攔截發生的錯誤.
+            error_client.report_exception()
+            if try_again:
+                raise  # Raise the exception and try again      # 丟一個 unknown exception, 啟動 retry.
+            else:
+                pass  # Swallow the exception and don't retry   # 不會有 retry, 進行相關處理或直接丟棄.
+        --------------------------------------------------------------------
+    有關撰寫 idempotent function 提示:
+      https://cloud.google.com/functions/docs/bestpractices/retries#make_retryable_event-driven_functions_idempotent
+    Configure the retry policy:
+      - Shorten the retry window from 7 days to as little as 10 minutes.
+      - Change the minimum and maximum backoff time for the exponential backoff retry strategy.
+      - Change the retry strategy to retry immediately.
+      - Configure a dead-letter topic.
+      - Set a maximum and minimum number of delivery attempts.
+  - 一個 Cloud function 只能有一個 entry point (only one trigger function, 即 http 或 event-driven 只能擇一)
+    即使 source code 內設定有多個 entry points, 但布署時只能選擇一種 event, 一個 entry point.
+    例如某 function 只能有 http function 功能, 或是監視 storage change 的功能, 如果也要監視 storage delete, 則要布署另外一個 function  (可以使用同一 source, 只要 function name 不同)
+  - Memory and file system
+    - 可以在布署時 configure memory limit
+    - 每個 function 自帶一 in-memory file system, 內含目錄結構. 某一目錄含 source file 為 readonly, 其餘為 read/write (除了某些會被 operating system 所參考使用的檔案也 readonly).
+  - Network
+    - 可以任意存取 public internet. 使用內建、或 third-party libraries 皆可.
+    - 當某連線連續超過一段時間無通訊(~10 min), 可能會被系統斷掉. 避免過長等待, 或要特意等待, 必須正確處理 keep alive 或正確的 close 連線.
+  - 單次叫用可執行時間 timeout (2nd gen)
+    - 內定:
+      - 60 min (3600 sec) for HTTP function
+      - 9 min (540 sec) for event-driven function
+    - 可以於 deploy 時透過 --timeout=<timeout> 調整內定值.
+    - 當 timeout 發生, 系統會讓程式繼續執行直到結束 (2nd only). 對於 HTTP, 會代為返回 HTTP 504 但 timeout 之後任何 response 不會發出.
+  - Function 名稱各 REGION 唯一即可.
+
+2. Programming Cloud Function
+  - Two types of Cloud Function
+    - HTTP functions
+    - Event-driven functions
+    可以同時擁有嗎? 目前暫時認為可以, 單一 Cloud function 可以含多個 funtions.
+  - HTTP function 必須總是正確 return HTTP response
+    Event-driven function 必須總是 "return 某些數值"(implicitly or explicitly) 做為結束.
+  - 一些注意事項:
+    https://cloud.google.com/functions/docs/bestpractices/tips
+    - 確保 event-driven function source code 的正確性 (bug free).
+    - 儘量確保 Event-driven function 的實作都應該是 Idempotent (deterministic) (針對相同的 request, 無論呼叫多少次進來, 結果都會相同, 並且不該有邊際效應)
+    - 確保 http functions 都必須回應且回應正確的 http respnose. 不回應即離開, 系統可能會判斷成尚未執行完成而一直等待直到 timeout (浪費資源), 或是進行 cold start.
+    - 不要額外啟動 background task/thread/process. 當自 function 返回, 此 instance 即不可再存取 CPU 資源. (見上述)
+    - In-memory filesytem 空間有限, 當觸發 function 結束, 應該盡可能將產生的檔案刪除. 以免一直佔據記憶體.
+      並使用 independent API/function 來存取檔案. 例如使用 open/read/write(), 而非 Win32 API CreateFile/ReadFile()
+    - 確保各 libraries 相依性, 如果可能, 儘量在 requirements.txt 內對各 libraries 指定版本限制.
+    - 降低 intitalize phase from cold start once 時間, 避免等太久才應付 request.
+      boot time of code start 包括準備 image, 準備/安裝需要的模組.
+      故:
+        - 不用到的 modules 就儘量不用載入.
+        - 某些資源可以在需要時再初始化 (lazily initialization), 避免 cold reboot 太久.
+
+3. Cloud Function in Python
+  - CLI
+    gclound functions deploy NAME --runtime python312 --trigger-http
+  - Source code must follow a specific structure: (準備目錄)
+    +------------------------------------
+    |my_function_project/
+    |  |
+    |  + main.py                        <-- 必須是這個檔案名稱
+    |  |
+    |  + requirements.txt
+    |  |
+    |  + localpackage/                  <-- 如果有 private 或無法使用 pip 安裝的 packages 才需要此目錄.
+    |      |
+    |      + __init__.py
+    |      |
+    |      + script.py                  <-- 例如有這個 python script
+    +------------------------------------
+  - requirements.txt 的內容範例:
+     +------------------------------------
+     |funtions-framework==3.*
+     |...
+  - 如果有 localpackage, 則 Python source 參考方式:
+    --------------------------------------------------------------------
+    from localpackage import script.py
+    ...
+    --------------------------------------------------------------------
+    其它有關如何處理 dependence 細節, 例如 vendor dependent package, Python wheel (*.whl, *.tar.gz)
+    https://cloud.google.com/functions/docs/writing/specifying-dependencies-python
+  - 設定/更新/移除環境變數 (之後被 function 參考), 例如:
+    gcloud functions deploy <NAME> --set-env-vars FOO=bar,BAZ=boo FLAGS ...
+    gcloud functions deploy <NAME> --update-env-vars FOO=bar2,BAZ=boo2 FLAGS ...
+    gcloud functions deploy <NAME> --remove-env-vars FOO,BAZ
+    gcloud functions deploy <NAME> --clear-env-vars
+    --
+    import os
+    ...
+    os.environ.get("FOO", "Specified environment variable is not set.")
+    project_id = os.environ.get("GCP_PROJECT")      # 取得 the GCP project ID for this runtime
+
+4. 第一支程式
+4.1 準備
+  $ mkdir \Users\chance\helloworld
+  $ cd \Users\chance\helloworld
+  準備 source file "main.py"  <-- 名稱必須是這個.
+  --------------------------------------------------------------------
+  import functions_framework
+
+  from markupsafe import escape
+  @functions_framework.http
+  def hello_http(request):
+      """HTTP Cloud Function.
+      Args:
+          request (flask.Request): The request object.
+          <https://flask.palletsprojects.com/en/1.1.x/api/#incoming-request-data>
+      Returns:
+          The response text, or any set of values that can be turned into a
+          Response object using `make_response`
+          <https://flask.palletsprojects.com/en/1.1.x/api/#flask.make_response>.
+      """
+      request_json = request.get_json(silent=True)
+      request_args = request.args
+
+      if request_json and "name" in request_json:
+          name = request_json["name"]
+      elif request_args and "name" in request_args:
+          name = request_args["name"]
+      else:
+          name = "World"
+      return f"Hello {escape(name)}!"
+  --------------------------------------------------------------------
+  準備 Python 相依性檔案 "requirements.txt"
+  --------------------------------------------------------------------
+  functions-framework==3.*
+  --------------------------------------------------------------------
+
+4.2 於 local 端執行/測試, 結果如下:
+  --------------------------------------------------------------------
+  $     thon --target hello_http     <-- 輸入並按下 enter  (這個 hello_http 為 source 內 entry point 函式名稱)
+  * Serving Flask app 'hello_http'
+  * Debug mode: off
+  WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+  * Running on all addresses (0.0.0.0)
+  * Running on http://127.0.0.1:8080
+  * Running on http://172.16.3.232:8080
+  Press CTRL+C to quit
+  --------------------------------------------------------------------
+  然後透過瀏覽器 with URL http://127.0.0.1:8080, 可看到字串 Hello World!
+  --
+
+4.3 實際布署與測試
+4.3.1 對於 HTTP functions:
+  --------------------------------------------------------------------
+  $ gcloud functions deploy python-http-function \    <-- 名稱自訂.
+    --gen2 \
+    --runtime=python312 \
+    --region=<REGION> \             <-- 需要更改成所需. e.g. us-west1, asia-east1 (Taiwan), asia-southeast1 (Singapore)
+    --source=. \
+    --entry-point=hello_http \      <-- entry point
+    --trigger-http \
+    --allow-unauthenticated         <-- 此項目, 除非 for public website 或 public API, 否則最好只有在測試時才使用此.
+  或
+  C:\....>$ gcloud functions deploy python-http-function --gen2 --runtime=python312 --region=asia-east1 --source=. --entry-point=hello_get --trigger-http --allow-unauthenticated
+  --------------------------------------------------------------------
+  將會回傳 URI 可供從外部連線至 funciton.
+  上述 --region, 也可事先透過 gcloud config set funciton/region <REGION> 來設定, 就可以於命令列中省略.
+  --
+  測試:
+  直接使用上面的 URI 從瀏覽器測試. 如果忘記 URI, 可透過下面方式獲得:
+  --------------------------------------------------------------------
+  $ gcloud functions describe python-http-function --region=<REGION>
+  --------------------------------------------------------------------
+  注意! REGION 要對. 因為可以布署到多個 regions. 即 function 布署將以 region 為單位.
+  實際測試:
+  --------------------------------------------------------------------
+  $ curl -m 70 -X POST <URI> -H "Authorization: Bearer $(gcloud auth print-identity-token)" -H "Content-Type: application/json" -d '{}'
+  --------------------------------------------------------------------
+
+4.3.2 對於 Eventarc event-driven functions 的布署
+  請見下面 6.
+
+4.4 觀看 Log
+  --------------------------------------------------------------------
+  $ gcloud functions logs read \
+      --gen2 \
+      --limit=10 \
+      --region=<REGION> \
+      python-http-function
+  --------------------------------------------------------------------
+  註: 所有在 Cloud function 內的 stdout 也都會輸出至 log, 故很方便.
+
+4.5 刪除 Cloud function
+  --------------------------------------------------------------------
+  $ gcloud functions delete python-http-function --gen2 --region <REGION>
+  => $ gcloud functions delete python-http-function --gen2 --region asia-east1
+  --------------------------------------------------------------------
+  <REGION> e.g. asia-east1
+
+5. 程式基本結構 for HTTP functions:
+  https://cloud.google.com/functions/docs/writing/write-http-functions
+5.1 最基本程式結構:
+  --------------------------------------------------------------------
+  import functions_framework
+
+  # Register an HTTP function with the Functions Framework
+  @functions_framework.http
+  def my_http_function(request):            # a Flask object passed
+      # Your code here
+
+      # Return an HTTP response
+      return 'OK'
+  --------------------------------------------------------------------
+  The entry point is just the registered function name "my_http_function"
+
+5.2 支援 http method
+  - 支援: GET, POST, PUT, DELETE, and OPTIONS
+
+5.3 Handling CORS (Cross-Origin Resourcing Sharing / CORS)
+  A way to let caller in one domain access certain functions run in another domain.
+      Domain 1                 Domain 2
+      ----------               ----------
+      Caller App ---- req ---> Function
+  --
+  當不被允許, 在 caller 端可能會出現如下訊息:
+  --------------------------------------------------------------------
+  XMLHttpRequest cannot load https://YOUR_FUNCTION_URL.
+  No 'Access-Control-Allow-Origin' header is present on the requested resource.
+  Origin 'https://YOUR_DOMAIN' is therefore not allowed access.
+  --------------------------------------------------------------------
+  --
+  To allow cross-origin requests to your function, set the Access-Control-Allow-Origin header as appropriate on your HTTP response.
+  For "preflighted cross-origin requests", you must respond to the preflight OPTIONS request with a 204 response code and additional headers.
+  --------------------------------------------------------------------
+  import functions_framework
+
+  @functions_framework.http
+  def cors_enabled_function(request):
+      # For more information about CORS and CORS preflight requests, see:
+      # https://developer.mozilla.org/en-US/docs/Glossary/Preflight_request
+
+      # Set CORS headers for the preflight request
+      if request.method == "OPTIONS":
+          # Allows GET requests from any origin with the Content-Type
+          # header and caches preflight response for an 3600s
+          headers = {
+              "Access-Control-Allow-Origin": "*",
+              "Access-Control-Allow-Methods": "GET",
+              "Access-Control-Allow-Headers": "Content-Type",
+              "Access-Control-Max-Age": "3600",
+          }
+
+          return ("", 204, headers)
+
+      # Set CORS headers for the main request
+      headers = {"Access-Control-Allow-Origin": "*"}
+
+      return ("Hello World!", 200, headers)
+  --------------------------------------------------------------------
+  For "preflighted cross-origin requests", preflight OPTIONS requests are sent without an Authorization header,
+  so they will be rejected on all HTTP functions that require authentication.
+  To work around this limit, use one of following:
+    - Allow unauthenticated invocations of your function.
+    - Host your web app and Cloud Functions on the same domain to avoid CORS. You can do this by integrating Firebase Hosting with Cloud Functions.
+
+6. 程式基本結構 for event-driven functions:
+  https://cloud.google.com/functions/docs/writing/write-event-driven-functions
+6.1 概述:
+  - In cloud functions 2nd gen, 一律透過 CloudEvent functions. (一代, 則不同語言有不同處理方式)
+    以下忽略 1st gen 使用方式.
+  - CloudEvent functions are based on "CloudEvents"
+  - 最基本程式結構:
+    --------------------------------------------------------------------
+    import functions_framework
+    from cloudevents.http.event import CloudEvent
+
+    # Register a CloudEvent function with the Functions Framework
+    @functions_framework.cloud_event
+    def my_cloudevent_function(cloud_event: CloudEvent) -> None:            # cloud_event is a "CloudEvents" object
+      # Your code here
+      # Access the CloudEvent data payload via cloud_event.data
+      print(f"Received event with ID: {cloud_event['id']} and data {cloud_event.data}")
+    --------------------------------------------------------------------
+    The entry point is just the registered function name "my_cloudevent_function".
+
+6.2 本地端布署與測試:
+  - 本地端佈署: (接收所有 event)
+    --------------------------------------------------------------------
+    $ functions-framework --target=my_cloudevent_function
+    --------------------------------------------------------------------
+  - 本地端測試:
+    --------------------------------------------------------------------
+    curl -X POST localhost:8080 \
+       -H "Content-Type: application/cloudevents+json" \
+       -d '{
+        "specversion" : "1.0",
+        "type" : "example.com.cloud.event",
+        "source" : "https://example.com/cloudevents/pull",
+        "subject" : "123",
+        "id" : "A234-1234-1234",
+        "time" : "2018-04-05T17:31:00Z",
+        "data" : "hello world"
+      }'
+    --------------------------------------------------------------------
+    產出:
+    Received event with ID: A234-1234-1234 and data hello world
+
+6.3 實際佈署
+  https://cloud.google.com/functions/docs/tutorials/storage
+  程式範例:
+  --------------------------------------------------------------------
+  from cloudevents.http import CloudEvent
+  import functions_framework
+
+  # Triggered by a change in a storage bucket
+  @functions_framework.cloud_event
+  def hello_gcs(cloud_event: CloudEvent) -> tuple:
+      """This function is triggered by a change in a storage bucket.
+        Args:
+          cloud_event: The CloudEvent that triggered this function.
+      Returns:
+          The event ID, event type, bucket, name, metageneration, and timeCreated.
+      """
+      data = cloud_event.data
+
+      event_id = cloud_event["id"]
+      event_type = cloud_event["type"]
+
+      bucket = data["bucket"]
+      name = data["name"]
+      metageneration = data["metageneration"]
+      timeCreated = data["timeCreated"]
+      updated = data["updated"]
+
+      print(f"Event ID: {event_id}")
+      print(f"Event type: {event_type}")
+      print(f"Bucket: {bucket}")
+      print(f"File: {name}")
+      print(f"Metageneration: {metageneration}")
+      print(f"Created: {timeCreated}")
+      print(f"Updated: {updated}")
+
+      return event_id, event_type, bucket, name, metageneration, timeCreated, updated
+  --------------------------------------------------------------------
+
+  命令:
+  --------------------------------------------------------------------
+  格式:
+  $ gcloud functions deploy YOUR_FUNCTION_NAME \
+     --gen2 \
+     --trigger-event-filters="type=EVENTARC_FILTER_TYPE" \
+     [--trigger-event-filters=EVENTARC_EVENT_FILTER] \
+     [--trigger-event-filters-path-pattern=EVENTARC_EVENT_PATH_PATTERN] \
+     [--trigger-location=EVENTARC_TRIGGER_LOCATION] \
+     [--trigger-service-account=EVENTARC_TRIGGER_SERVICE_ACCOUNT] \
+     [--retry] \
+     ...
+  實例1: (要攔截當某檔案被上傳至 cloud storage):
+  $ gcloud functions deploy python-finalize-function \
+     --gen2 \
+     --runtime=python312 \
+     --region=asia-east1
+     --source=. \
+     --entry-point=hello_gcs \
+     --trigger-event-filters="type=google.cloud.storage.object.v1.finalized" \
+     --trigger-event-filters="bucket=my-test-bucket-1"
+  實例2: (要攔截當某檔案自 cloud storage 被刪除(non-versioning and versioning) 或被覆寫(non-versioning only)):
+  $ gcloud functions deploy python-delete-function \
+     --gen2 \
+     --runtime=python312 \
+     --region=asia-east1
+     --source=. \
+     --entry-point=hello_gcs \
+     --trigger-event-filters="type=google.cloud.storage.object.v1.deleted" \
+     --trigger-event-filters="bucket=my-test-bucket-1"
+  --------------------------------------------------------------------
+  上述兩個實例可以同時被安裝. (注意, 需要安裝兩次 for each, YOUR_FUNCTION_NAME 和 --trigger-event-filters 必須不同)
+  驅動實例 1:
+  $ gsutil cp test-finalize.txt gs://my-test-bucket-1/test-finalize.txt
+  驅動實例 2:
+  $ gsutil rm gs://my-test-bucket-1/test-delete.txt
+
+6.x 讀取 log
+  --------------------------------------------------------------------
+  $ gcloud functions logs read <YOUR_FUNCTION_NAME> --region=<REGION> --gen2 --limit=10
+  --------------------------------------------------------------------
+  所有在 Cloud function 內的 stdout 也都會輸出至 log. (每列一筆 log)
+
+7. Function 權限
+  - For 2nd gen, Cloud function 的 Runtime service account 內定為 default compute service account
+  - 如果需要變動 function 的 Runtime service account, 在觀念上, 兩種方式:
+    Change permissions on the default runtime service account, or
+    Create individual service accounts for your functions
+  - 需要接收 Cloud storage 事件, 需要如下 API 權限:
+    Cloud Storage
+    Enable Eventarc service
+    Cloud Storage service agent must have the Pub/Sub Publisher (roles/pubsub.publisher) IAM role on your project.
+
+8. 偵測 Cloud Storage 事件:
+  https://cloud.google.com/functions/docs/calling/storage
+  - 所傳入的 CloudEvent.data 其 type 為 StorageObjectData.
+  - Cloud Storage triggers are implemented with Pub/Sub notifications for Cloud Storage. Events are subject to Pub/Sub notification delivery guarantees.
+  - Permissions (2nd gen only, 1st gen need not)
+    The "Cloud Storage service agent" must have the "Pub/Sub Publisher" (roles/pubsub.publisher) IAM role on your project.
+    --------------------------------------------------------------------
+    命令列方式:
+    PROJECT_ID=$(gcloud config get-value project)
+    PROJECT_NUMBER=$(gcloud projects list --filter="project_id:$PROJECT_ID" --format="value(project_number)")
+    SERVICE_ACCOUNT=$(gsutil kms serviceaccount -p $PROJECT_NUMBER)             # 取得 default service account (不等於 Compute Engine default service)
+    gcloud projects add-iam-policy-binding $PROJECT_ID \
+      --member serviceAccount:$SERVICE_ACCOUNT \
+      --role roles/pubsub.publisher
+    實例:
+    PROJECT_ID=callme-398802     # $(gcloud config get-value project)
+    PROJECT_NUMBER=410240967190  # $(gcloud projects list --filter="project_id:callme-398802" --format="value(project_number)")
+    SERVICE_ACCOUNT=service-410240967190@gs-project-accounts.iam.gserviceaccount.com   # $(gsutil kms serviceaccount -p 410240967190)
+    gcloud projects add-iam-policy-binding callme-398802 --member serviceAccount:service-410240967190@gs-project-accounts.iam.gserviceaccount.com --role roles/pubsub.publisher
+    --------------------------------------------------------------------
+  - 測試:
+    於 bucket 內拷貝或刪除檔案.
+    透過 log 觀察動作:
+    --------------------------------------------------------------------
+    格式:
+    gcloud functions logs read YOUR_FUNCTION_NAME --region <REGION> --gen2 --limit=<row number>
+    實際:
+    gcloud functions logs read YOUR_FUNCTION_NAME --region asia-east1 --gen2 --limit=10
+
+9. 發出與攔截 Pub/Sub 事件
+  - 最簡單程式架構
+    建立 Pub/Sub topic:
+    --------------------------------------------------------------------
+    gcloud pubsub topics create <topic name>
+    實例:
+    gcloud pubsub topics create test-topic
+    --------------------------------------------------------------------
+    import base64
+
+    from cloudevents.http import CloudEvent
+    import functions_framework
+
+    # Triggered from a message on a Cloud Pub/Sub topic.
+    @functions_framework.cloud_event
+    def hello_pubsub(cloud_event: CloudEvent) -> None:
+        expected_type = "google.cloud.pubsub.topic.v1.messagePublished"
+        received_type = cloud_event["type"]
+        if received_type != expected_type:
+            raise ValueError(f"Expected {expected_type} but received {received_type}")
+
+        # Print out the data from Pub/Sub, to prove that it worked
+        print(
+            "Hello, " + base64.b64decode(cloud_event.data["message"]["data"]).decode() + "!"
+        )
+    --------------------------------------------------------------------
+    布署:
+    gcloud functions deploy function-1 \
+        --gen2 \
+        --runtime=python312 \
+        --region=<REGION> \                        # the region, e.g. asia-east1
+        --source=. \
+        --entry-point=<ENTRY_FUNCTION_NAME> \      # entry point, e.g. hello_pubsub
+        --trigger-topic <TOPIC_NAME> \             # topic name, e.g. pubsub_test_topic
+        [--retry]
+    實例:
+    gcloud functions deploy function-1 --gen2 --runtime=python312 --region=asia-east1 --source=. --entry-point=hello_pubsub --trigger-topic=test-topic
+    --------------------------------------------------------------------
+    測試 (手動發出 pubsub topic event):
+    --------------------------------------------------------------------
+    gcloud pubsub topics publish <TOPIC_NAME> --message="Friend"
+    實際:
+    gcloud pubsub topics publish test-topic --message="Friend"
+    --------------------------------------------------------------------
+    讀取執行 log:
+    --------------------------------------------------------------------
+    gcloud functions logs read <FUNCTION_NAME> \    #  e.g. pubsub_test
+        --gen2 \
+        --region=<REGION> \
+        [--limit=5]
+    實際:
+    gcloud functions logs read function-1 --region=asia-east1 --limit=5
+
+  - 若要限縮 Pub/Sub type of trigger 權限, 可於 UI 上對此 trigger 建立 service account. 決定此 trigger (from Eventarc) 能使用的 project 資源.
+    Eventarc uses this service account to invoke the function with an identity token (此 service account ID) from the Pub/Sub service.
+    我們設定此 trigger 僅能呼叫 Cloud function 2nd gen.
+    故建立: service-account-for-eventarc-1 權限為 Cloud Run Invoker (不要選 Cloud Function Invoker, 其僅限 1st gen)
+    --------------------------------------------------------------------
+
+  - 若要限縮此 Cloud function 的執行權限 (決定此 function 能使用 project 資源的權限)
+    故建立 service-account-cron-func, 權限為 (看需求. 以上述程式碼為例, 因為不存取任何系統資訊, 所以不用給予)
+    --------------------------------------------------------------------
+
+  - 計畫:
+    Cloud storage ----檔案更新/寫入----> entry_point_func1 ----發出 TRANSLATE_TOP event----> entry_point_func2
+     (某 Bucket)
+
+  - 註冊/(刪除註冊) pub/sub topic
+    --------------------------------------------------------------------
+    格式:
+    gcloud pubsub topics create <topic name>
+    gcloud pubsub topics delete <topic name>
+    實例:
+    gcloud pubsub topics create request_handle_translate
+    --------------------------------------------------------------------
+
+  - 自 Cloud function 發出某 pubsub topic 的 event (較複雜結構)
+    --------------------------------------------------------------------
+    import os
+    import json
+    from google.cloud import pubsub_v1
+    from cloudevents.http import CloudEvent
+    import functions_framework
+
+    publisher = pubsub_v1.PublisherClient()
+    project_id = os.environ.get("GCP_PROJECT")
+
+    @functions_framework.cloud_event
+    def entry_point_func1(cloud_event: CloudEvent) -> None:
+        topic_name = os.environ.get("TRANSLATE_TOPIC")
+        # 準備一個結構, 用來傳遞資料.
+        message = {
+            "text": text,
+            "filename": filename,
+            "lang": target_lang,
+            "src_lang": src_lang,
+        }
+
+        message_data = json.dumps(message).encode("utf-8")
+        topic_path = publisher.topic_path(project_id, topic_name)
+        future = publisher.publish(topic_path, data=message_data)
+        future.result()     # Wait for operation to complete (必須自此返回後才離開此 function)
+    --------------------------------------------------------------------
+    布署:
+    gcloud functions deploy ocr-extract \
+        --gen2 \
+        --runtime=python312 \
+        --region=<REGION> \                         # the region, e.g. asia-east1
+        --source=. \
+        --entry-point=<ENTRY_FUNCTION_NAME>> \      # entry point, e.g. entry_point_func1
+        --trigger-bucket <YOUR_IMAGE_BUCKET_NAME> \
+        [--retry \]
+        --set-env-vars "^:^GCP_PROJECT=<YOUR_GCP_PROJECT_ID>:TRANSLATE_TOPIC=<YOUR_TRANSLATE_TOPIC_NAME>"
+    --------------------------------------------------------------------
+
+  - 自 Cloud function 接收某 pubsub topic 的 event
+    --------------------------------------------------------------------
+    from cloudevents.http import CloudEvent
+    import functions_framework
+    import os
+    import base64
+    import json
+    from google.cloud import pubsub_v1
+
+    publisher = pubsub_v1.PublisherClient()
+    project_id = os.environ.get("GCP_PROJECT")
+
+    @functions_framework.cloud_event
+    def entry_point_func2(cloud_event: CloudEvent) -> None:
+        # Check that the received event is of the expected type, return error if not
+        expected_type = "google.cloud.pubsub.topic.v1.messagePublished"
+        received_type = cloud_event["type"]
+        if received_type != expected_type:
+            raise ValueError(f"Expected {expected_type} but received {received_type}")
+
+        # Extract the message body, expected to be a JSON representation of a dictionary,
+        # and extract the fields from that dictionary.
+        data = cloud_event.data["message"]["data"]
+        try:
+            message_data = base64.b64decode(data)
+            message = json.loads(message_data)
+
+            text = message["text"]
+            filename = message["filename"]
+            target_lang = message["lang"]
+            src_lang = message["src_lang"]
+        except Exception as e:
+            raise ValueError(f"Missing or malformed PubSub message {data}: {e}.")
+
+        # handle received event
+    --------------------------------------------------------------------
+    布署:
+    gcloud functions deploy ocr-translate \
+        --gen2 \
+        --runtime=python312 \
+        --region=<REGION> \                         # the region, e.g. asia-east1
+        --source=. \
+        --entry-point=<ENTRY_FUNCTION_NAME>> \      # entry point, e.g. entry_point_func2 here
+        --trigger-topic <YOUR_TRANSLATE_TOPIC_NAME> \
+        [--retry \]
+        --set-env-vars "^:^GCP_PROJECT=<YOUR_GCP_PROJECT_ID>:TRANSLATE_TOPIC=<YOUR_TRANSLATE_TOPIC_NAME>"
+    --------------------------------------------------------------------
+
+  - 模擬發出 pubsub topic 某 event
+    略.
+  - 其它主題:
+    - Terraform Pub/Sub 範例
+    - Cloud Scheduler - Pub/Sub 範例
+
+10. Schedule a Cloud Function
+  - cron-work-1
+    */5 * * * *   每 5 分鐘.
+
+
+================================
+GCP 筆記 - Cloud Run
+https://cloud.google.com/functions/docs/concepts/overview
+================================
+1. 概述:
+  https://cloud.google.com/run/docs/overview/what-is-cloud-run
+  - Cloud run 很多觀念都同 Cloud Function (Cloud Function 建立於 Cloud Run 之上)
+  - 可做為 Service or Job 類應用.
+
+2. Service 概述
+  - Handle HTTP request
+                            +--------------------+
+                            |Cloud service       |
+                            |      +------------+|
+                            |+--+  |Instance    ||
+    -------> Https end-point||LB|  |Container(s)|| <------ your cloud run code inside
+    -------> Event event-dri|+--+  |            ||
+                     end-po.|      +------------+|
+                            |        +-----------|
+                            |          +---------|
+                            |                    |
+                            +--------------------+
+
+  - Every Cloud run service is provided with an HTTPS endpoint on a unique sub-domain of the *.run.app.
+    You may also use yours. GCP manages TLS for you. Also support WebSockets, HTTP/2(end-to-end), gRPC(end-to-end)
+  - Split the traffic (Gradual rollout)
+    使新舊版同時作用, 然後可設定若干 percentage 的 requests 分配給新版 handle.
+  - Limit to access (Public/Private)
+    - Cloud IAM - specify the access policy
+    - Firewall - Use ingress settings to restrict network access
+    - IAP (Identity-Aware Proxy) - Allow only authenticated users
+  - Front a Cloud Run service with a CDN (Content Delivery Network) to serve cacheable assets.
+  - Fast request-based auto scaling, and may scale to zero to minimize cost/isntances.
+  - Pricing policy (or)
+    - Request-based
+    - Intance-based
+  - Like Cloud Function there is a in-memory provided for this instance. Not persistent.
+    To receive a warning when Cloud Run is about to shut down an instance, your application can trap the SIGTERM signal.
+    This enables your code to flush local buffers and persist local data to an external data store.
+    (可等多久呢?)
+  - 啟動 Cloud Run service 時, 內定使用 1st generation 執行環境. 可以透過設定使用 2nd generation 執行環境.
+    如果要用 2nd generation 執行環境, 尤其是要存取 network file system 功能, 需要加上參數:
+    gcloud run deploy <SERVICE-NAME> .. --execution-environment gen2       (gen1 for 第一代)
+
+3. Job 概述
+  - May run it through CLI (Command Line Interface).
+  - Array job - many identical jobs run simultaneously.
+  - Job types: Single program/tool/utility/task vs. Array job vs. Scheduled job
+  - 啟動 Cloud Run job 時, 內定使用 2nd generation 執行環境.
+
+4. Cloud Run Integration
+  - The integration list: https://cloud.google.com/run/docs/using-gcp-services
+  - Data Storage: Cloud SQL (managed MySQL, PostgreSQL, and SQL Server), Memorystore (managed Redis and Memcached), Firestore, Spanner, Cloud Storage, and more.
+  - Logging and error reporting
+  - Service Identity
+    Every Cloud Run revision is linked to a service account, and
+    the Google Cloud client libraries transparently use this service account to authenticate with Google Cloud APIs.
+  - Continuous delivery
+    If you store your source code in GitHub, Bitbucket, or Cloud Source Repositories, you can configure Cloud Run to automatically deploy new commits.
+  - Private networking
+  - Background tasks - work well with Cloud Tasks to provide scalable and reliable asynchronous execution.
+
+5. Container Image
+   It must be packaged before deployed to run.
+
+6. Resource Model
+  https://cloud.google.com/run/docs/resource-model
+  - 單一個 instance 可能內含多個 containers.
+  - Cloud Run services
+    Each 'service' is located in a specific region (replicated to multiple zones of this region)
+  - Cloud Run revisions
+    - Each deployment to a service creates a revision.
+    - A revision consists of one or more container images, along with environment settings such as environment variables, memory limits, or concurrency value.
+    - Revisions are immutable: once a revision has been created, it cannot be modified.
+                               For example, when you deploy a container image to a new Cloud Run service, the first revision is created.
+                               If you then deploy a different container image to that same service, a second revision is created.
+                               If you subsequently set an environment variable, a third revision is created, and so on.
+    - Requests are automatically routed as soon as possible to the latest healthy service revision.
+  - Cloud Run jobs
+    Each 'job' is located in a specific Google Cloud region and executes one or more containers to completion.
+    A job consists of one or multiple independent tasks that are executed in parallel in a given job execution.
+    Each task runs one container, and might retry it.
+                         +---------------+
+        Execute job ---> |task/container |-+    Independent
+                         +---------------+ |-+  with each other
+                           +---------------+ |
+                             +---------------+
+  - Cloud Run instances
+    - May configure 'Currency settings' to set maximum number of requests that can be sent in parallel to a given instance.
+
+7. Container runtime contract
+  https://cloud.google.com/run/docs/container-contract
+  - Container images format
+    Cloud Run accepts container image in the Docker Image Manifest V2, Schema 1, Schema 2, and OCI.
+  - Listening for requests on the correct port (Services)
+            +-------------------------------------------------------+
+            |instance                                               |
+            |  +-------------------+    +-------------------+       |
+            |  |ingress container  |    |sidecars container |-+     |
+      req ---->|(listen on 0.0.0.0 |    +-------------------+ |-+   |
+            |  | :port(def:8080))  |      +-------------------+ |   |
+            |  +-------------------+        +-------------------+   |
+            |                                 ...                   |
+            |                                                       |
+            +-------------------------------------------------------+
+
+    - only one ingress container may with/out one or more sidecars
+    - ingress container must listen on 0.0.0.0:<port>  default <port> to 8080.
+    - port is passed throught 'PORT' environment variable.
+    - request is in protocols of HTTP, HTTP/2, WebSockets, or gRPC.
+
+  - Cloud Run job MUST EXIT with exit code 0 as success or non-zero as failure. (Jobs)
+    Also said: Jobs should not serve requests, the container should not listen on a port or start a web server.
+  - Transport layer encryptions (TLS) (Services)
+
+               +-----------------------------------------+
+               |+----+      +-------------------------+  |
+      req ----->|LB  |--+   |Instance                 |-+|
+         (TLS) |+----+  |   |+---------------------+  | ||
+               |        +--->|ingress container    |  | ||
+               |   (no TLS) |+---------------------+  | ||
+               |            +-------------------------+ ||
+               |              +-------------------------+|
+               |                ...                      |
+               +-----------------------------------------+
+
+    - (no TLS): may be HTTP/1 or gRPC or HTTP/2. all are without TLS.
+    - Your code don't need to implament/handle anything about TLS.
+
+  - Response (Services)
+    - Must send response before 'request timeout setting' after it receives a request (including the container startup time)
+      Default to 5 min (300 sec), may modify it through 'Request timeout'
+      --------------------------------------------------------------------
+      gcloud run services update [SERVICE] --timeout=[TIMEOUT]
+      e.g.
+      $ gcloud run services update my-cloud-service-1 --timeout=1m20s
+      --------------------------------------------------------------------
+      Maximum to 60 minutes.
+    - If timeout to response, will send back 504 error by system.
+  - Environment variables
+    https://cloud.google.com/run/docs/container-contract#env-vars
+    - For servce:
+      - PORT, e.g. 8080
+      - K_SERVICE, e.g. the service name 'hello-world'
+      - (more)
+    - For job:
+      - CLOUD_RUN_JOB
+      - CLOUD_RUN_TASK_INDEX
+      - CLOUD_RUN_TASK_COUNT
+      - (more)
+  - Request and response header requirements (Services)
+    Header names are restricted to printable non-whitespace ASCII, and cannot contain colons.
+    Header values are restricted to visible ASCII characters plus space and horizontal tab as per IETF RFC 7230.
+  - In-memory file system
+    - Each container has its own in-memory file system (occupy the memory for this instance)
+    - Beware of writing too many to crash the instance. (may configure in-memory volume to avoid this)
+  - Instance lifecycle
+    - For service:
+      - Auto scaling: depend on all incoming requests, events, CPU utilization, 'minimum/maximum number of instance' configured.
+        minimum number is 0 by default; maximum number is 100 by default.
+      - Startup: your instances must listen for requests within 4 minutes after being started and all containers within the instance need to be healthy.
+        - To speed up startup time, may "enable startup CPU boost". <- adjust to the "ingress container" only.
+        - Any request would be queued first to wait
+          - If request would trigger startup,
+            If average startup time < sec, will wait for at most 10 sec.
+            If average startup time > 10 sec, will wait for exceeding average time (how?).
+          - If request don't trigger startup, will wait for at most 10 sec.
+        - Startup probe: may configure this to determine startup state (ready to serve)
+        - For multiple-container instance, may configure "container startup order" to specify the sequence.
+      - Request timeout: 5 minute (300 seconds). May modify parameter 'request timeout' to up to 3600 seconds. (maximum 60 minutes)
+      - Idle: when an instance is in idle, it will be dropped (shut down) no longer than 15 min, until minimum instance number setting reached.
+      - Shutdown: if system intends to shut down an instance, will give time to complete current request.
+                  Any new request after shutdown request will be routed to other instances.
+                  But it's possible to just send SIGTERM signal to instance even the instance is still handling current request.
+                  Flow to shut down an instance:
+                  step 1: Wait if existing current request -> timeout or complete
+                  step 2: Send SIGTERM to all containers of this instance -> 10 second timeout (next step)
+                                                                          -> terminated -> STOP
+                  step 3: Send SIGKILL to terminate immediately.
+
+                  Program may trap the SIGTERM to finalize itself within 10 seconds. E.g. store the last states to Cloud Storage.
+                  Note, SIGKILL cannot be trapped/caught.
+      - Forced termination: if one instance lets exceed certain limits (e.g. total container memory limit), will be terminated.
+                            All requests being processed on it are ended up with HTTP 500 error.
+    - For job:
+      - Task timeout (Run time limit): 10 mins by default, may configure up to 24 hours.
+      - Forced terminateion: like service, if instance exceeds certain limit (usually the total container memory limit), will be terminated.
+        All requests, if there is, is being handled on the instance, will be ended up with HTTP 500 error.
+      - Shutdown: refer to 'For service' above. Trap the signal SIGTERM to finalize itself.
+  - Container instance resource
+    - CPU:
+      - 1 vCPU for each container (within a instance) by default.  (configurable)
+        - may configure separately for each container
+        - may configure to allocate CPU on all lifecycle or only on period of startup and handling request.
+        - 8 CPU at most.
+      - A container may run on multiple CPU cores simultaneously.
+    - Memory:
+      - 512MB for each container by default. (configurable)
+        - may configure separately for each container.
+        - 32GB at most.
+      - In-memory filesystem vs. In-memory volume
+        - In-memory filesystem for each container.
+        - In-memory volume shared by all container within a instance.
+    - Concurrency
+      - Given multiple requests to one instance overlapped. The concurrency request number may be configured.
+      - It's 80 by default, may configure it from 1 to up 1000.
+      - 此 Concurrency 設定針對 container. 對於 3-container instance, 即使設定為 1, 依然可以同時處理至多 3 requests.
+    - Container sandbox
+      - Full Linux compatibility.
+        /sys/class/dmi/id/product_num is set to "Google Compute Engine".
+    - Instance metadata server
+      Used to retrieve details about your containers, such as the project ID, region, instance ID or service accounts.
+      You can also use the metadata server to generate tokens for the service identity.
+      To access metadata server data, use HTTP requests to the http://metadata.google.internal/ endpoint with the "Metadata-Flavor: Google" header:
+      no client libraries are required. For more information, see Getting metadata.
+      https://cloud.google.com/compute/docs/storing-retrieving-metadata#querying
+      https://cloud.google.com/compute/docs/metadata/predefined-metadata-keys
+    - File name: must be UTF8 compatible
+    - Outbound connection timeout: raise request from your Cloud Run instance to:
+      - to VPC: 10 mins.
+      - to internet: 20 mins
+  - Want to run your docker container which is out of Cloud Run limit?
+    Consider using GKE (K8s)
+  - 不像 Cloud function, 對於 Cloud Run services, 當 return request 之後, 可以保持 thread 繼續執行.
+
+8. 自 Local directory 布署 Cloud Run (service) from SOURCE
+  - 建立 soruce directory
+    --------------------------------------------------------------------
+    $ mkdir py-helloworld
+    $ cd py-helloworld
+    --------------------------------------------------------------------
+  - 加入檔案 main.py
+    目前觀察, 主要檔案名稱必須是 main.py. 如過換成其它名稱是否可行需要實驗.
+    --------------------------------------------------------------------
+    import os
+    from flask import Flask
+
+    app = Flask(__name__)
+
+    @app.route("/")
+    def hello_world():
+        """Example Hello World route."""
+        name = os.environ.get("NAME", "World")
+        return f"Hello {name}!"
+
+    if __name__ == "__main__":
+        app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    --------------------------------------------------------------------
+  - 加入檔案 requirements.txt
+    --------------------------------------------------------------------
+    Flask==3.0.0
+    gunicorn==22.0.0
+    Werkzeug==3.0.1
+    --------------------------------------------------------------------
+  - 進行佈署 (透過 CLI)
+    於上述 py-helloworld 目錄下. (服務名稱不必須要與目錄名稱相同)
+    此命令將上傳 source => Build to container => Store to Artifact registry => Deploy to Cloud Run (service)
+    --------------------------------------------------------------------
+    格式:
+    $ gcloud run deploy <SERVICE_NAME> [--source .] [--image [IMAGE] ...]
+    實際:
+    $ gcloud run deploy      (如果沒有給 SERVICE_NAME, 目前觀察到會取用目錄名稱)
+    ... (一堆問題)
+    ...
+    Done.
+    Service [py-helloworld] revision [py-helloworld-00001-b6z] has been deployed and is serving 100 percent of traffic.
+    Service URL: https://py-helloworld-f6srfekjlq-de.a.run.app
+    --------------------------------------------------------------------
+    --source: 告知使用 Cloud Build 直接自 source 建立 container 與佈署.
+    如未指定 --image, 內定會放到 Artifact registry 下的 Repository 'cloud-run-source-deploy'/<SERVICE_NAME>:latest
+    使用瀏覽器執行上述 URL, 我測試的結果可以成功.
+  - 查詢 URL. 如果忘記 URL, 可透過 UI 或如下方式查詢:
+    --------------------------------------------------------------------
+    $ gcloud run services describe py-helloworld --region=<REGION>
+    --------------------------------------------------------------------
+  - 讀取 log
+    --------------------------------------------------------------------
+    $ gcloud beta run services logs read py-helloworld --region=asia-east1 --limit=10
+    --------------------------------------------------------------------
+  - 移除指定 Cloud Run service
+    --------------------------------------------------------------------
+    gcloud run services delete <SERVICE_NAME> --region=<REGSION>
+    實例:
+    $ gcloud run services delete py-helloworld --region asia-east1
+    --------------------------------------------------------------------
+    刪除上述, 但其 image 依然位於 Artifact Registry, 還是會被收費.
+    https://console.cloud.google.com/artifacts/docker/callme-398802/asia-east1/cloud-run-source-deploy?project=callme-398802
+    故至 UI 將其手動刪除即可.
+  - 移除指定 Container image
+    --------------------------------------------------------------------
+    gcloud artifacts docker images delete <LOCATION>-docker.pkg.dev/<PROJECT_ID>/<REGISTRY>/<PATH>[:<TAG>]
+    實例:
+    $ gcloud artifacts docker images delete asia-east1-docker.pkg.dev/callme-398802/cloud-run-source-deploy/py-helloworld
+    --------------------------------------------------------------------
+
+9. 自 GitHub 布署 Cloud Run (service)
+  GibHub:
+    repository: test-cloud-run-from-py-template
+  Service: test-cloud-run-from-py-template
+    asia-test1 (Taiwan)
+  (todo 略)
+
+10. 自 Local directory 布署 Cloud Run (job) from SOURCE
+  - 建立 soruce directory
+    --------------------------------------------------------------------
+    $ mkdir py-helloworld-job
+    $ cd py-helloworld-job
+    --------------------------------------------------------------------
+  - 加入檔案 main.py
+    目前觀察, 主要檔案名稱必須是 main.py. 如過換成其它名稱是否可行需要實驗.
+    --------------------------------------------------------------------
+    import json
+    import os
+    import random
+    import sys
+    import time
+
+    # Retrieve Job-defined env vars
+    TASK_INDEX = os.getenv("CLOUD_RUN_TASK_INDEX", 0)
+    TASK_ATTEMPT = os.getenv("CLOUD_RUN_TASK_ATTEMPT", 0)
+    # Retrieve User-defined env vars
+    SLEEP_MS = os.getenv("SLEEP_MS", 0)
+    FAIL_RATE = os.getenv("FAIL_RATE", 0)
+
+    # Define main script
+    def main(sleep_ms=0, fail_rate=0):
+        """Program that simulates work using the sleep method and random failures.
+
+        Args:
+            sleep_ms: number of milliseconds to sleep
+            fail_rate: rate of simulated errors
+        """
+        print(f"Starting Task #{TASK_INDEX}, Attempt #{TASK_ATTEMPT}...")
+        # Simulate work by waiting for a specific amount of time
+        time.sleep(float(sleep_ms) / 1000)  # Convert to seconds
+
+        # Simulate errors
+        random_failure(float(fail_rate))
+
+        print(f"Completed Task #{TASK_INDEX}.")
+
+
+    def random_failure(rate):
+        """Throws an error based on fail rate
+
+        Args:
+            rate: a float between 0 and 1
+        """
+        if rate < 0 or rate > 1:
+            # Return without retrying the Job Task
+            print(
+                f"Invalid FAIL_RATE env var value: {rate}. "
+                + "Must be a float between 0 and 1 inclusive."
+            )
+            return
+
+        random_failure = random.random()
+        if random_failure < rate:
+            raise Exception("Task failed.")
+
+
+    # Start script
+    if __name__ == "__main__":
+        try:
+            main(SLEEP_MS, FAIL_RATE)
+        except Exception as err:
+            message = (
+                f"Task #{TASK_INDEX}, " + f"Attempt #{TASK_ATTEMPT} failed: {str(err)}"
+            )
+
+            print(json.dumps({"message": message, "severity": "ERROR"}))
+            sys.exit(1)  # Retry Job Task by exiting the process
+    --------------------------------------------------------------------
+
+  - 如果有額外的 modules 需要 import, 則加入檔案 requirements.txt
+    (本範例並不須要此檔案. 此處僅供參考)
+    --------------------------------------------------------------------
+    Flask==3.0.0
+    gunicorn==22.0.0
+    Werkzeug==3.0.1
+    --------------------------------------------------------------------
+
+  - 加入檔案 Procfile (不需要副檔名), 內容如下:
+    --------------------------------------------------------------------
+    web: python3 main.py
+    --------------------------------------------------------------------
+
+  - 進行佈署 (透過 CLI)
+    於上述 py-helloworld-job 目錄下. (服務名稱不必須要與目錄名稱相同)
+    --------------------------------------------------------------------
+    格式:
+      $ gcloud run jobs deploy <JOB_NAME> \
+        --runtime=python312     <-- 如果不指定, 會自動採用最新的.
+        --source . \
+        --tasks 50 \            <-- 定義要執行多少個 instance copy (usually in concurrency)
+        --set-env-vars SLEEP_MS=10000 \
+        --set-env-vars FAIL_RATE=0.1 \
+        --max-retries 5 \
+        --region <REGION> \     <-- 如果不指定, 會自先前的 gcloud config set run/region 設定來尋找.
+        --project=<PROJECT_ID>  <-- 如果不指定, 會自先前的 gcloud config set [core/]project 設定來尋找.
+    實際:
+      $ gcloud run jobs deploy py-helloworld-job --runtime=python312 --source . --tasks 10 --set-env-vars SLEEP_MS=10000 --set-env-vars FAIL_RATE=0.1 --max-retries 5 --region asia-east1 --project=callme-398802
+    實際:
+    $ gcloud run jobs deploy py-helloworld-job --runtime=python312 --source . --tasks 10 --set-env-vars SLEEP_MS=10000 --set-env-vars FAIL_RATE=0.1 --max-retries 5
+    ...
+    Done.
+    Job [py-helloworld-job] has successfully been deployed.
+
+    To execute this job, use:
+    gcloud run jobs execute py-helloworld-job
+    --------------------------------------------------------------------
+    --source: 告知使用 Cloud Build 直接自 source 建立 container 與佈署.
+    上述完成後, 還不會執行. 必須執行如下命令來實際啟動執行.
+    --------------------------------------------------------------------
+    $ gcloud run jobs execute py-helloworld-job
+    --------------------------------------------------------------------
+    我執行的結果是失敗 (布署時遺漏 Procfile).
+    建立 Procfile 然後再次佈署, 然後執行:
+    --------------------------------------------------------------------
+    啟動 job:
+      $ gcloud run jobs execute py-helloworld-job
+      OK Creating execution... Done.
+        OK Provisioning resources...
+      Done.
+      Execution [py-helloworld-job-zz6lt] has successfully started running.
+
+      View details about this execution by running:
+      gcloud run jobs executions describe py-helloworld-job-zz6lt
+
+      Or visit https://console.cloud.google.com/run/jobs/executions/details/asia-east1/py-helloworld-job-zz6lt/tasks?project=410240967190
+    觀察 job 執行 (依據上面指令)):
+      $ gcloud run jobs executions describe py-helloworld-job-zz6lt
+
+  - 讀取 log
+    gcloud beta run jobs logs read py-helloworld-job --region=asia-east1 --limit=10
+  - 移除指定 Cloud Run job
+    --------------------------------------------------------------------
+    $ gcloud run jobs delete py-helloworld-job --region asia-east1
+    --------------------------------------------------------------------
+    刪除上述, 但其 image 依然位於 Artifact Registry, 還是會被收費.
+    https://console.cloud.google.com/artifacts/docker/callme-398802/asia-east1/cloud-run-source-deploy?project=callme-398802
+  - 所以如果完全不需要, 可以將其自 Artifact Registry 刪除.
+    如果不先刪除 Cloud Run job, 即刪除 Artifact Register 內的 image, 
+    經實際觀察發現, Cloud Run 內項目 py-helloworld-job 依然存在. 但如果啟動執行會失敗. 所以一般來說直接將其刪除即可 gcloud run jobs delete py-hello...
+  - 自 Artifacts repository 移除指定 Container image
+    --------------------------------------------------------------------
+    gcloud artifacts docker images delete <LOCATION>-docker.pkg.dev/<PROJECT_ID>/<REGISTRY>/<PATH>[:<TAG>]
+    實例:
+    $ gcloud artifacts docker images delete asia-east1-docker.pkg.dev/callme-398802/cloud-run-source-deploy/py-helloworld-job
+    --------------------------------------------------------------------
+
+11. Set up your environment for Local docker image
+  https://cloud.google.com/run/docs/setup
+  - Local 安裝 docker
+    (For Ubuntu: https://docs.docker.com/engine/install/ubuntu/)
+    安裝後必須執行如下, 確認該 local docker 有被授權.
+    --------------------------------------------------------------------
+    gcloud auth configure-docker
+    gcloud components install docker-credential-gcr
+    --------------------------------------------------------------------
+  - 透過某些工具
+    Intellij
+    VSCode
+    Cloud Shell
+
+12. Plan and prepare your service (service)
+  - Listen on the port designed by environment variable 'PORT'.
+  - Cloud Run service 內定使用 1st generation 執行環境. 可以透過如下設定使用 2nd generation 執行環境:
+    --------------------------------------------------------------------
+    $ gcloud run deploy <SERVICE_NAME> .. --execution-environment gen2       (gen1 for 第一代)
+    --------------------------------------------------------------------
+    Cloud Run job 內定使用 2nd generation 執行環境.
+  - For local compile / wrap to package
+    - Dockerfile (範例)
+      --------------------------------------------------------------------
+      FROM golang:1.11
+      ..
+      --------------------------------------------------------------------
+    - If containing binary, must build to Linux ABI x86_64 compatible
+  - Connect to Google Cloud services
+    https://cloud.google.com/run/docs/integrate/using-gcp-services
+    Just see what service your codes want to connect, and refer to that document in above page.
+
+13. 自 Local directory 布署 Cloud Run (service) by Cloud Build
+  https://cloud.google.com/run/docs/tutorials/system-packages
+  - 流程概念:
+    Build with Cloud Build => Upload to Artifact Container Registry => deploy to Cloud Run (service)
+  - 初始化與安裝範例:
+    $ sudo gcloud components update
+    $ gcloud config set project <PROJECT_ID>   # e.g. callme-398802
+    $ gcloud config set run/region <REGION>    # e.g asia-east1
+    $ git clone https://github.com/GoogleCloudPlatform/python-docs-samples.git
+    $ cd python-docs-samples/run/system-package
+  - Local 測試以及封裝:
+    --------------------------------------------------------------------
+    $ docker build --tag graphviz:python
+    --------------------------------------------------------------------
+    前面 graphviz 是 REPOSITORY 名稱, 後面 python 是 TAG 名稱. 如果省略 ":python" 則內定為 ":latest".
+    如果發生 permission 錯誤, 請在命令最前面加上 sudo 或參考下述設定不用加上 sudo.
+    --
+    Local 啟動:
+    --------------------------------------------------------------------
+    $ docker run -p 9090:8080 -e PORT=8080 graphviz:python
+    --------------------------------------------------------------------
+    然後使用瀏覽器 with URL:
+    https://127.0.0.1:9090/diagram.png?dot=digraph Run { rankdir=LR Code -> Build -> Deploy -> Run }
+    可在瀏覽器中央看到圖片.
+    --
+    關閉 container 執行.
+    於原本視窗按下 Ctrl-C, 或於其他視窗執行如下:
+    --------------------------------------------------------------------
+    docker container rm -f <CONTAINER_IDs>
+    --------------------------------------------------------------------
+    -f 如果 container 還在執行, 必須要有 -f 才可以關閉, 否則此刪除命令會被忽略.
+    <CONTAINER ID> 可以僅使用 prefix, 但必須唯一. 且此 <CONTAINER ID> 不接受名稱 (image 名稱) 因為一個名稱可以有多個 container 執行)
+    --
+    補充說明: 刪除位於 local 端的對應 image
+    --------------------------------------------------------------------
+    docker image rm [-f] <IMAGE_ID|IMAGE_NAME[:TAG]>
+    --------------------------------------------------------------------
+    如果有對應 container 還在 run, 則需要加上 -f 表示 force.
+  - Build and store in Artifact registry
+    --------------------------------------------------------------------
+    gcloud builds submit --tag gcr.io/<PROJECT_ID>/<service_name>
+    實例:
+    $ export MY_PROJECT=callme-398802
+    $ gcloud builds submit --tag gcr.io/$MY_PROJECT/graphviz
+    --------------------------------------------------------------------
+    不了解為何一定要 gcr.io. 另外還有 asia.gcr.io, eu.gcr.io, etc. (gcr.io 是 for legacy Container Registry 相容性使用, 建議改用下述標準的方式)
+    <service_name> 我覺得意義上應該是 image name 比較好.
+  - Deploy
+    --------------------------------------------------------------------
+    gcloud run deploy <SERVICE_NAME> --image gcr.io/<PROJECT_ID>/<IMAGE_NAME> [--[no-]allow-unauthenticated]
+    實例:
+    $ export MY_PROJECT=callme-398802
+    $ gcloud run deploy graphviz-web --image gcr.io/$MY_PROJECT/graphviz
+    Allow unauthenticated invocations to [graphviz-web] (y/N)? y
+    ...
+    Done.
+    ...
+    Service URL: https://graphviz-web-f6srfekjlq-de.a.run.app
+    --------------------------------------------------------------------
+  - 測試:
+    該 URL 可自 UI 或上述命令末尾獲得.
+    --------------------------------------------------------------------
+    https://graphviz-web-f6srfekjlq-de.a.run.app/diagram.png?dot=digraph Run { rankdir=LR Code -> Build -> Deploy -> Run }
+    --------------------------------------------------------------------
+    成功.
+  - 補充: 如果要建立自己的 artifacts repository, 如下:
+    --------------------------------------------------------------------
+    gcloud artifacts repositories create <REPOSITORY> --repository-format=docker --location=<REGION>
+    實例:
+    $ gcloud artifacts repositories create my-repos-1 --repository-format=docker --location=asia-east1
+    --------------------------------------------------------------------
+  - 安全性, 建立一個無權限的 service
+    --------------------------------------------------------------------
+    gcloud iam service-accounts create <SA_NAME>
+    --------------------------------------------------------------------
+    佈署 service 並賦予上述權限.
+    --------------------------------------------------------------------
+    gcloud run deploy <SERVICE_NAME> --service-account <SA_NAME>@<PROJECT_ID>.iam.gserviceaccount.com  --image asia.gcr.io/<PROJECT_ID>/graphviz[:<TAG>]
+    實例:
+    $ gcloud iam service-accounts create my-service-account
+    $ export MY_PROJECT=callme-398802
+    $ gcloud run deploy graphviz-web --service-account my-service-account@${MY_PROJECT}.iam.gserviceaccount.com  --image asia.gcr.io/$MY_PROJECT/graphviz
+    --------------------------------------------------------------------
+    TAG 內定為 'latest'.
+
+14. 部署 (Build + Deploy) 更精確說明
+  - Create an Artifact Registry repository 用來放置 Container image
+    --------------------------------------------------------------------
+    gcloud artifacts repositories create <REPOSITORY> --repository-format=docker --location=<LOCATION/REGION> --description="<DESCRIPTION>" [--immutable-tags] --async
+    --------------------------------------------------------------------
+    --immutable-tags 表示設定 tag 跟隨特定 revision 後不可再變更.
+  - 如果有準備 Dockerfile, 則可以透過如下方式佈署:
+    Build using Cloud Build
+    Build locally using Docker (local)
+    如果沒有準備, 則只能使用 Buildpack (from source)
+
+14.1 使用 Cloud Build
+  - 此方式需事先準備 Dockerfile
+  - 進行 Build => 儲存至 Artifacts registry
+    --------------------------------------------------------------------
+    gcloud builds submit --tag <IMAGE_URL>
+    <IMAGE_URL> ::= <LOCATION>-docker.pkg.dev/<PROJECT_ID>/<REPO_NAME>/<PATH>:<TAG>
+    實例:
+    $ gcloud builds submit --tag asia-east1-docker.pkg.dev/callme-398802/my-repo-1/graphviz
+    --------------------------------------------------------------------
+    我上面是使用 asia.gcr.io/<PROJECT_ID>/<PATH>[:<TAG>]  有甚麼不同呢?
+    因為 gcr.io (或 eu.gcr.io, asia.gcr.io 等) 是針對 legacy Container Registry 相容性與其廢除後之搬移位置. (所以請不要再使用)
+
+14.2 使用 local docker 來建立 container image 以及傳送至 Artifacts registry
+  - 安裝 docker 後必須執行如下, 確認該 local docker 有被授權.
+    --------------------------------------------------------------------
+    gcloud auth configure-docker
+    gcloud components install docker-credential-gcr
+    --------------------------------------------------------------------
+  - 設定 Docker 能存取 Artifact registry
+    --------------------------------------------------------------------
+    gcloud auth configure-docker <LOCATION>-docker.pkg.dev
+    實例:
+    $ gcloud auth configure-docker asia-east1-docker.pkg.dev
+    --------------------------------------------------------------------
+    此命令將會修改 local 端的 /home/<username>/.docker/config.json 檔案, 加上一行例如:
+    "asia-east1-docker.pkg.dev": "gcloud"
+  - 此方式需事先準備 Dockerfile
+  - 進行 local Build
+    --------------------------------------------------------------------
+    docker build . --tag <IMAGE_URL>
+    <IMAGE_URL> ::= <LOCATION>-docker.pkg.dev/<PROJECT_ID>/<REPO_NAME>/<PATH>:<TAG>
+    實例:
+    $ docker build . --tag asia-east1-docker.pkg.dev/callme-398802/my-repo-1/graphviz
+    --------------------------------------------------------------------
+  - 將剛才 built 的 image 上傳至 Artifact registry
+    --------------------------------------------------------------------
+    docker push <IMAGE_URL>
+    實例:
+    $ docker push asia-east1-docker.pkg.dev/callme-398802/my-repo-1/graphviz
+    --------------------------------------------------------------------
+
+14.3 使用 Buildpack
+  - 此方式不需要事先準備 Dockerfile
+    主檔名必須是 main.py, main.js, main.go, ....
+  - 直接將 source 上傳然後打包以及儲存至 Artifact registry
+    --------------------------------------------------------------------
+    gcloud builds submit --pack image=<IMAGE_URL>
+    --------------------------------------------------------------------
+    <IMAGE_URL> 請參考上述.
+
+14.4 佈署位於 Artifacts Registry 的 Container image 至 Cloud Run
+  - Deploy
+    --------------------------------------------------------------------
+    gcloud run deploy <SERVICE_NAME> --image <IMAGE_URL> [--[no-]allow-unauthenticated]
+    實例:
+    $ gcloud run deploy graphviz-web --image asia-east1-docker.pkg.dev/callme-398802/my-repo-1/graphviz
+    Allow unauthenticated invocations to [graphviz-web] (y/N)? y
+    ...
+    Done.
+    ...
+    Service URL: https://graphviz-web-f6srfekjlq-de.a.run.app
+    --------------------------------------------------------------------
+    <IMAGE_URL> 請參考上述.
+
+14.5 移除指定 Cloud Run 以及 Container image
+  - 移除指定 Cloud Run service
+    --------------------------------------------------------------------
+    gcloud run services delete <SERVICE_NAME> --region=<REGSION>
+    實例:
+    $ gcloud run services delete graphviz-web --region asia-east1
+    --------------------------------------------------------------------
+    刪除上述, 但其 image 依然位於 Artifact Registry, 還是會被收費.
+  - 移除指定 Container image
+    --------------------------------------------------------------------
+    gcloud artifacts docker images delete <LOCATION>-docker.pkg.dev/<PROJECT_ID>/<REGISTRY>/<PATH>[:<TAG>]
+    實例:
+    $ gcloud artifacts docker images delete asia-east1-docker.pkg.dev/callme-398802/my-repo-1/graphviz
+    --------------------------------------------------------------------
+
+15. Run Container image stored in Artifact registry locally
+  https://cloud.google.com/run/docs/testing/local#docker-with-google-cloud-access
+  - 於 local 端執行位於 Artifact registry 內的 container image, 且可以存取其它 Google Cloud service
+  - 必須事先設定 Docker 能存取 Artifact registry (僅需做一次)
+    --------------------------------------------------------------------
+    gcloud auth configure-docker <LOCATION>-docker.pkg.dev
+    實例:
+    $ gcloud auth configure-docker asia-east1-docker.pkg.dev
+    --------------------------------------------------------------------
+    此命令將會修改 local 端的 /home/<username>/.docker/config.json 檔案, 加上一行例如:
+    "asia-east1-docker.pkg.dev": "gcloud"
+  - 直接使用 docker
+    --------------------------------------------------------------------
+    PORT=8080 && docker run -p 9090:${PORT} -e PORT=${PORT} <IMAGE_URL>
+    實例:
+    $ PORT=8080 && docker run -p 9090:${PORT} -e PORT=${PORT} asia-east1-docker.pkg.dev/callme-398802/my-repo-1/graphviz
+    (開啟 browser http://localhost:9090)
+    --------------------------------------------------------------------
+    <IMAGE_URL> 請參考上述.
+  - 還有其他方式.
+    Docker with Google Cloud
+    Using Google Cloud client libraries to integrate your application with Google Cloud services
+    (略)
+
+16. Public service and Private service
+  - Public service
+    1. Set your service to "allow unauthenticated (public) access"
+    2. A URL for public use
+  - Private service
+    1. limit access to the service by leveraging the IAM invoker permission.
+  - How to test private service
+    方式一:
+    Use proxy in localhost:8080 to forward to that private service
+    --------------------------------------------------------------------
+    gcloud run services proxy <SERVICE> --project <PROJECT-ID>
+    --------------------------------------------------------------------
+    方式二:
+    --------------------------------------------------------------------
+    curl -H "Authorization: Bearer $(gcloud auth print-identity-token)" <SERVICE_URL>
+    --------------------------------------------------------------------
+
+17. 透過 Cloud Scheduler 來觸發 service
+  - 由 Cloud scheduer 呼叫過去, 屬於 Private service, 請不要 "allow unauthenticated access".
+  - 建立此 service 的 Service account
+    --------------------------------------------------------------------
+    gcloud iam service-accounts create <SERVICE_ACCOUNT_NAME> \
+      [--display-name "<DISPLAYED_SERVICE_ACCOUNT_NAME>"]
+    --------------------------------------------------------------------
+    <SERVICE_ACCOUNT_NAME>: e.g. service-account-CR-service-invoker
+    <DISPLAYED_SERVICE_ACCOUNT_NAME>: e.g. The service account which is able to invoke CR service
+  - 使此 Service account 具有 "允許此 Cloud Run service 被呼叫" 的角色:
+    For Cloud Run, give your service account permission to invoke your service:
+    --------------------------------------------------------------------
+    gcloud run services add-iam-policy-binding <SERVICE> \
+        --member=serviceAccount:<SERVICE_ACCOUNT_NAME>@<PROJECT_ID>.iam.gserviceaccount.com \
+        --role=roles/run.invoker
+    --------------------------------------------------------------------
+    <SERVICE> 一般是 Cloud Run service 的名稱. 執行此命令時此名稱必須已經存在, 這意謂著 Cloud Run service 必須要事先佈署.
+  ****************************
+  - Grant your service account access to the project so that it has permission to complete specific actions on the resources in your project.
+    (不懂意義)
+    --------------------------------------------------------------------
+    gcloud projects add-iam-policy-binding <RESOURCE_ID> \
+       --member=<PRINCIPAL> \
+       --role=roles/run.invoker
+    --------------------------------------------------------------------
+    <RESOURCE_ID>: 即 Project ID
+  ****************************
+  - 建立一個 Schedule job
+    --------------------------------------------------------------------
+    gcloud scheduler jobs create http <SCHEDULE_JOB_NAME>
+       --schedule <SCHEDULE-DATA>
+       --http-method=<HTTP-METHOD>
+       --uri=<SERVICE-URL>
+       --oidc-service-account-email=<SERVICE-ACCOUNT-EMAIL>
+       [--oidc-token-audience=<SERVICE-URL>]
+    --------------------------------------------------------------------
+    <SCHEDULE-DATA>: e.g. "/5 * * * *" 表示 define the duration to per 5 minutes. The format is similar to Linux cron
+    <HTTP-METHOD>: GET / POST / PUT / DELETE 等.
+    <SERVICE-ACCOUNT-EMAIL>: <SA_NAME>@<PROJECT_ID>.iam.gserviceaccount.com
+    --oidc-token-audience: 一般來說會與 --uri 參數相同. 如果相同, 可以省略此參數.
+  - 暫停/繼續/刪除 Scheduler job
+    --------------------------------------------------------------------
+    gcloud scheduler jobs pause <JOB_NAME> --location=<REGION>
+    gcloud scheduler jobs resume <JOB_NAME> --location=<REGION>
+    gcloud scheduler jobs delete <JOB_NAME> --location=<REGION>
+    --------------------------------------------------------------------
+
+18. 實際 Scheduler 觸發 Cloud Run service 範例
+  - 本範例使用 Local docker 進行 build 以及 push
+  - Create an Artifact Registry repository 如果之前不存在，則建立此 (放置 Container image)
+    --------------------------------------------------------------------
+    $ gcloud artifacts repositories create my-repo-1 --repository-format=docker --location=asia-east1 --async
+    --------------------------------------------------------------------
+  - 安裝 docker, 然後必須執行如下, 確認該 local docker 有被 GCP 授權.
+    並設定 Docker 能存取 Artifact registry
+    --------------------------------------------------------------------
+    $ gcloud auth configure-docker
+    $ gcloud components install docker-credential-gcr
+    $ gcloud auth configure-docker asia-east1-docker.pkg.dev
+    --------------------------------------------------------------------
+  - Local 端建立某一目錄, 進入該目錄
+    --------------------------------------------------------------------
+    $ md py-helloworld
+    $ cd py-helloworld
+    --------------------------------------------------------------------
+  - 加入檔案 main.py
+    目前觀察, 主要檔案名稱必須是 main.py. 如過換成其它名稱是否可行需要實驗.
+    --------------------------------------------------------------------
+    import os
+    from flask import Flask
+
+    app = Flask(__name__)
+
+    @app.route("/")
+    def hello_world():
+        """Example Hello World route."""
+        name = os.environ.get("NAME", "World")
+        return f"Hello {name}!"
+
+    if __name__ == "__main__":
+        app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    --------------------------------------------------------------------
+  - 加入檔案 requirements.txt
+    --------------------------------------------------------------------
+    Flask==3.0.0
+    gunicorn==22.0.0
+    Werkzeug==3.0.1
+    --------------------------------------------------------------------
+  - 加入檔案 .dockerignore
+    --------------------------------------------------------------------
+    .dockerignore
+    Dockerfile
+    __pycache__
+    .pytest_cache
+    --------------------------------------------------------------------
+  - Docker Build locally
+    --------------------------------------------------------------------
+    $ docker build . --tag asia-east1-docker.pkg.dev/callme-398802/my-repo-1/py-helloworld
+    --------------------------------------------------------------------
+  - 將剛才 built 的 image 上傳至 Artifact registry
+    --------------------------------------------------------------------
+    $ docker push asia-east1-docker.pkg.dev/callme-398802/my-repo-1/py-helloworld
+    --------------------------------------------------------------------
+  - 如果需要專屬 service account 則建立如下:
+    --------------------------------------------------------------------
+    gcloud iam service-accounts create <SERVICE_ACCOUNT_NAME> \
+      [--display-name "<DISPLAYED_SERVICE_ACCOUNT_NAME>"]
+    $ gcloud iam service-accounts create sa-py-helloworld
+    --------------------------------------------------------------------
+    此時, 此新建立的專屬 service account 不具任何權限.
+  - 布署 service 
+    --------------------------------------------------------------------
+    $ gcloud run deploy py-helloworld --service-account=sa-py-helloworld@callme-398802.iam.gserviceaccount.com --image asia-east1-docker.pkg.dev/callme-398802/my-repo-1/py-helloworld --no-allow-unauthenticated
+    Allow unauthenticated invocations to [graphviz-web] (y/N)? N  <-- 注意!!
+    ...
+    Done.
+    ...
+    Service URL: https://py-helloworld-f6srfekjlq-de.a.run.app
+    --------------------------------------------------------------------
+    如果使用內定 service account (Compute Engine default service account), 則不用指定 --service-account.
+    一旦佈署 Cloud Run service, 其 service account 就會固定, 不可事後改變. 如果要改變, 視為另外一個 revision.
+  - 如果有設定專屬 service account, 必須使此 service account 具有 roles/run.invoker 角色.
+    For Cloud Run, give your service account permission to invoke your service:
+    --------------------------------------------------------------------
+    $ gcloud run services add-iam-policy-binding py-helloworld --member=serviceAccount:sa-py-helloworld@callme-398802.iam.gserviceaccount.com --role=roles/run.invoker
+    --------------------------------------------------------------------
+    如果使用內定 service account (布署時沒有指定 --service-account), 保險起見, 請確保該 default service account 具有 roles/run.invoker 權限:
+    --------------------------------------------------------------------
+    $ gcloud projects add-iam-policy-binding callme-398802 \
+       --member=serviceAccount:410240967190-compute@developer.gserviceaccount.com \
+       --role=roles/run.invoker
+    --------------------------------------------------------------------
+  - 建立一個 Schedule job
+    --------------------------------------------------------------------
+    如果使用上述專屬 service account:
+    $ gcloud scheduler jobs create http py-helloworld-invoker --schedule "*/1 * * * *" --http-method=GET --uri=https://py-helloworld-f6srfekjlq-de.a.run.app \
+       --oidc-service-account-email=sa-py-helloworld@callme-398802.iam.gserviceaccount.com \
+       [--oidc-token-audience=https://py-helloworld-f6srfekjlq-de.a.run.app]
+    如果直接使用內定 service account [Compute Engine default service account]:
+    $ gcloud scheduler jobs create http py-helloworld-invoker --schedule "*/1 * * * *" --http-method=GET --uri=https://py-helloworld-f6srfekjlq-de.a.run.app \
+       --oidc-service-account-email=410240967190-compute@developer.gserviceaccount.com \
+       [--oidc-token-audience=https://py-helloworld-f6srfekjlq-de.a.run.app] <== 一般來說與 --uri 內容不同才需要此項目
+    --------------------------------------------------------------------
+    內定情況, 使用 GET 可以成功, 用 PUT/POST 會失敗.
+    我因為沒有建立 service account, 所以後來是到 console UI 去選取 compute Engine default service account, 如下:
+    --------------------------------------------------------------------
+    Console UI:
+    Cloud Scheduler => 點選 py-helloworld-invoker => 至 Configuration the execution =>
+        Auth header 選擇 "Add OIDC token" => Service account 選擇 "Compute Engine default service account"
+    --------------------------------------------------------------------
+  - 檢查 log
+    --------------------------------------------------------------------
+    $ gcloud run services log read py-helloworld [--limit 5]
+    --------------------------------------------------------------------
+  - 暫停或刪除 Scheduler job
+    --------------------------------------------------------------------
+    $ gcloud scheduler jobs pause py-helloworld-invoker --asia-east1
+    或
+    $ gcloud scheduler jobs delete py-helloworld-invoker
+    --------------------------------------------------------------------
+  - 移除指定 Cloud Run service
+    --------------------------------------------------------------------
+    $ gcloud run services delete py-helloworld --region asia-east1
+    --------------------------------------------------------------------
+    刪除上述, 但其 image 依然位於 Artifact Registry, 還是會被收費.
+    故至 UI 將其手動或執行如下進行刪除.
+  - 移除指定 Container image
+    --------------------------------------------------------------------
+    gcloud artifacts docker images delete <LOCATION>-docker.pkg.dev/<PROJECT_ID>/<REGISTRY>/<PATH>[:<TAG>]
+    實例:
+    $ gcloud artifacts docker images delete asia-east1-docker.pkg.dev/callme-398802/my-repo-1/py-helloworld
+    --------------------------------------------------------------------
+  - 移除指定 service account
+    --------------------------------------------------------------------
+    $ gcloud iam service-accounts delete sa-py-helloworld@callme-398802.iam.gserviceaccount.com
+    --------------------------------------------------------------------
+
+19. 偵測 cloud storage 事件以及讀寫 cloud storage
+  - 使 Cloud Run service 可以讀寫、偵測 Cloud Storage 檔案、事件。
+  - 需要 enable Eventarc API
+  - Create an Artifact Registry repository 如果之前不存在，則建立此 (放置 Container image)
+    --------------------------------------------------------------------
+	gcloud artifacts repositories create <REPOSITORY> \
+      --repository-format=docker \
+      --location=<REGION>
+	實例:
+    $ gcloud artifacts repositories create my-repo-1 --repository-format=docker --location=asia-east1 --async
+    --------------------------------------------------------------------
+  - 安裝 docker, 然後必須執行如下, 確認該 local docker 有被 GCP 授權.
+    並設定 Docker 能存取 Artifact registry
+    --------------------------------------------------------------------
+    $ gcloud auth configure-docker
+    $ gcloud components install docker-credential-gcr
+    $ gcloud auth configure-docker asia-east1-docker.pkg.dev
+    --------------------------------------------------------------------
+  - Local 端建立某一目錄, 進入該目錄
+    --------------------------------------------------------------------
+    $ md py-helloworld-storage
+    $ cd py-helloworld-storage
+    --------------------------------------------------------------------
+  - 加入檔案 main.py
+    目前觀察, 主要檔案名稱必須是 main.py. 如過換成其它名稱是否可行需要實驗.
+    source code 參考: https://cloud.google.com/run/docs/samples/cloudrun-imageproc-controller?hl=en#cloudrun_imageproc_controller-python
+    --------------------------------------------------------------------
+    import os
+    import json
+    #import base64
+    from flask import Flask, request
+    from google.cloud import storage
+
+    app = Flask(__name__)
+
+    @app.route("/")
+    def hello_world():
+        """Example Hello World route."""
+        name = os.environ.get("NAME", "World")
+        return f"Hello {name}!"
+
+    def download_blob_into_memory(bucket_name, blob_name):
+        """Downloads a blob into memory."""
+        # The ID of your GCS bucket
+        # bucket_name = "your-bucket-name"
+
+        # The ID of your GCS object
+        # blob_name = "storage-object-name"
+
+        storage_client = storage.Client()
+
+        bucket = storage_client.bucket(bucket_name)
+
+        # Construct a client side representation of a blob.
+        # Note `Bucket.blob` differs from `Bucket.get_blob` as it doesn't retrieve
+        # any content from Google Cloud Storage. As we don't need additional data,
+        # using `Bucket.blob` is preferred here.
+        blob = bucket.blob(blob_name)
+        contents = blob.download_as_bytes()
+
+        print(
+            "Downloaded storage object {} from bucket {} as the following bytes object: {}.".format(
+                blob_name, bucket_name, contents.decode("utf-8")
+            )
+        )
+
+    @app.route("/storage", methods=['POST'])
+    def hello_storage():
+        """Receive and parse Pub/Sub messages containing Cloud Storage event data."""
+        event_data = request.get_json()
+        if not event_data:
+            msg = "no Pub/Sub message received"
+            print(f"error: {msg}")
+            return f"Bad Request: {msg}", 400
+
+        if not isinstance(event_data, dict):
+            msg = "invalid Pub/Sub message format"
+            print(f"error: {msg}")
+            return f"Bad Request: {msg}", 400
+
+        # Validate the message is a Cloud Storage event.
+        if not event_data["name"] or not event_data["bucket"]:
+            msg = (
+                "Invalid Cloud Storage notification: "
+                "expected name and bucket properties"
+            )
+            print(f"error: {msg}")
+            return f"Bad Request: {msg}", 400
+
+        try:
+            download_blob_into_memory(event_data['bucket'], event_data['name'])
+            return ("", 204)    # success (no content and need not refresh)
+
+        except Exception as e:
+            print(f"error: {e}")
+            return ("", 500)
+
+        return ("", 500)
+
+    if __name__ == "__main__":
+        app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))
+    --------------------------------------------------------------------
+  - 加入檔案 requirements.txt
+    --------------------------------------------------------------------
+    Flask==3.0.0
+    gunicorn==22.0.0
+    Werkzeug==3.0.1
+    cloudevents==1.10.1
+    google-cloud-storage==2.16.0
+    --------------------------------------------------------------------
+    以下針對此範例不需要.
+    google-cloud-pubsub==2.21.1
+    google-events==0.11.0
+  - 加入檔案 .dockerignore
+    --------------------------------------------------------------------
+    .dockerignore
+    Dockerfile
+    __pycache__
+    .pytest_cache
+    --------------------------------------------------------------------
+  - Docker Build locally
+    --------------------------------------------------------------------
+    docker build . --tag <IMAGE_URL>
+    <IMAGE_URL> ::= <LOCATION>-docker.pkg.dev/<PROJECT_ID>/<REPO_NAME>/<PATH>[:<TAG>]
+    實例:
+    $ docker build . --tag asia-east1-docker.pkg.dev/callme-398802/my-repo-1/py-helloworld
+    --------------------------------------------------------------------
+  - 將剛才 built 的 image 上傳至 Artifact registry
+    --------------------------------------------------------------------
+    docker push <IMAGE_URL>
+    實例:
+    $ docker push asia-east1-docker.pkg.dev/callme-398802/my-repo-1/py-helloworld
+    --------------------------------------------------------------------
+  - 建議加上如下會比較方便 (做一次即可):
+    --------------------------------------------------------------------
+    gcloud config set eventarc/location ${REGION}
+    實例:
+    $ gcloud config set eventarc/location asia-east1
+    --------------------------------------------------------------------
+  - 取得若干環境變數以利後續.
+    --------------------------------------------------------------------
+    命令列方式:
+    PROJECT_ID=$(gcloud config get-value project)                 # 取得專案 ID
+    PROJECT_NUMBER=$(gcloud projects list --filter="project_id:$PROJECT_ID" --format="value(project_number)")
+    SERVICE_ACCOUNT=$(gsutil kms serviceaccount -p $PROJECT_ID)   # 取得此專案的 Cloud Storage service agent (不等於 Compute Engine default service)
+    gcloud projects add-iam-policy-binding $PROJECT_ID \
+      --member serviceAccount:$SERVICE_ACCOUNT \
+      --role roles/pubsub.publisher
+    實例:
+    PROJECT_ID=callme-398802        # $(gcloud config get-value project)
+    PROJECT_NUMBER=410240967190
+    SERVICE_ACCOUNT=service-410240967190@gs-project-accounts.iam.gserviceaccount.com   # $(gsutil kms serviceaccount -p callme-398802)
+    --------------------------------------------------------------------
+  - Permissions (2nd gen only, 1st gen need not)
+    The "Cloud Storage service agent" must have the "Pub/Sub Publisher" (roles/pubsub.publisher) IAM role on your project.
+    --------------------------------------------------------------------
+    gcloud projects add-iam-policy-binding $PROJECT_ID \
+      --member serviceAccount:$SERVICE_ACCOUNT \
+      --role roles/pubsub.publisher
+    實例:
+    $ gcloud projects add-iam-policy-binding callme-398802 --member serviceAccount:service-410240967190@gs-project-accounts.iam.gserviceaccount.com --role roles/pubsub.publisher
+    --------------------------------------------------------------------
+  - 如果需要專屬 service account 則建立如下:
+    --------------------------------------------------------------------
+    gcloud iam service-accounts create <SERVICE_ACCOUNT_NAME> \
+      [--display-name "<DISPLAYED_SERVICE_ACCOUNT_NAME>"]
+    實例:
+    $ gcloud iam service-accounts create sa-py-helloworld
+    --------------------------------------------------------------------
+    此時, 此新建立的專屬 service account 不具任何權限.
+  - 布署 Cloud Run service 
+    --------------------------------------------------------------------
+    $ gcloud run deploy py-helloworld --service-account=sa-py-helloworld@callme-398802.iam.gserviceaccount.com --image asia-east1-docker.pkg.dev/callme-398802/my-repo-1/py-helloworld --no-allow-unauthenticated
+    Allow unauthenticated invocations to [graphviz-web] (y/N)? N  <-- 注意!!
+    ...
+    Done.
+    ...
+    Service URL: https://py-helloworld-f6srfekjlq-de.a.run.app
+    --------------------------------------------------------------------
+    如果使用內定 service account (Compute Engine default service account), 則不用指定 --service-account.
+    一旦佈署 Cloud Run service, 其 service account 就會固定, 不可事後改變. 如果要改變, 視為另外一個 revision.
+  - 如果有設定專屬 service account, 必須使此 service account 具有 roles/run.invoker 角色.
+    For Cloud Run, give your service account permission to invoke your service:
+    --------------------------------------------------------------------
+    $ gcloud run services add-iam-policy-binding py-helloworld --member=serviceAccount:sa-py-helloworld@callme-398802.iam.gserviceaccount.com --role=roles/run.invoker
+    --------------------------------------------------------------------
+    如果沒有設定專屬 service account, 布署時沒有指定 --service-account, 保險起見, 請確保該 default service account 具有 roles/run.invoker 權限:
+    --------------------------------------------------------------------
+    gcloud projects add-iam-policy-binding <PROJECT_ID> \
+       --member=serviceAccount:<PROJECT_NUMBER>-compute@developer.gserviceaccount.com \
+       --role=roles/run.invoker
+    實例:
+    $ gcloud projects add-iam-policy-binding callme-398802 \
+       --member=serviceAccount:410240967190-compute@developer.gserviceaccount.com \
+       --role=roles/run.invoker
+    --------------------------------------------------------------------
+  - 如果有設定專屬 service account, 必須指定 bucket 接受此 service account 存取. (如果使用內定 service account, 應該不需要) (做一次即可)
+    (將權限設定在 bucket)
+    --------------------------------------------------------------------
+    $ gsutil iam ch serviceAccount:sa-py-helloworld@callme-398802.iam.gserviceaccount.com:objectViewer,objectCreator gs://callme-bucket
+    --------------------------------------------------------------------
+    可使用命令 gsutil iam get gs://callme-bucket 來獲得該 bucket 存取權.
+  - 使 Compute Engine default service account 具有 roles/eventarc.eventReceiver 角色 (做一次即可)
+   (有看到文件提到此, 但我不確定是否一定要做此. 因覺得有可能內定就已經生效)(供參考)
+   --------------------------------------------------------------------
+   gcloud projects add-iam-policy-binding <PROJECT_ID>
+     --member=serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com --role=roles/eventarc.eventReceiver
+   實例:
+   $ gcloud projects add-iam-policy-binding callme-398802 \
+      --member=serviceAccount:410240967190-compute@developer.gserviceaccount.com --role=roles/eventarc.eventReceiver
+   --------------------------------------------------------------------
+  - Add Eventarc trigger
+    必須指定某一具有 roles/run.invoker 角色.
+    經過實驗, 使用上面 $SERVICE_ACCOUNT 或自建 service account (sa-py-helloworld) 都失敗.
+    使用 Compute Engine default service account 則會成功.
+    --------------------------------------------------------------------
+    gcloud eventarc triggers create <TRIGGER> \
+        --location=<LOCATION> \
+        --destination-run-service=<DESTINATION_RUN_SERVICE> \
+        --destination-run-region=<DESTINATION_RUN_REGION> \
+        --event-filters="type=<EVENT_FILTER_TYPE>" \
+        --event-filters="bucket=<BUCKET>" \
+        --service-account=<SERVICE_ACCOUNT_NAME>@<PROJECT_ID>.iam.gserviceaccount.com
+    實例:
+    $ gcloud eventarc triggers create trigger-gcs-finalize \
+        --location=asia-east1 \
+        --service-account=410240967190-compute@developer.gserviceaccount.com \
+        --destination-run-service=py-helloworld \
+        --destination-run-region=asia-east1 \
+        --destination-run-path="/storage" \
+        --event-filters="bucket=callme-bucket" \
+        --event-filters="type=google.cloud.storage.object.v1.finalized"
+    --------------------------------------------------------------------
+    有關 --service-account, 目前測試只能使用 Compute Engine default service account. 想用自己的都會缺東缺西.
+    <DESTINATION_RUN_SERVICE>: <PROJECT_NUMBER>-compute@developer.gserviceaccount.com
+    可已設定多組 --event-filters=, 但某一 event 必須滿足所有設定的 event-filters, 才會被傳送給 service. 所以如果想要多種, 則必須設定多個 triggers.
+    --destination-run-path="/storage": 呼叫 service 時所使用的 URL 附加路徑.
+    The event payload is application/json.
+  - 建立一個 Schedule job
+    --------------------------------------------------------------------
+    如果使用上述專屬 service account:
+    $ gcloud scheduler jobs create http py-helloworld-invoker --schedule "*/1 * * * *" --http-method=GET --uri=https://py-helloworld-f6srfekjlq-de.a.run.app \
+       --oidc-service-account-email=sa-py-helloworld@callme-398802.iam.gserviceaccount.com \
+       [--oidc-token-audience=https://py-helloworld-f6srfekjlq-de.a.run.app]
+    如果直接使用內定 service account [Compute Engine default service account]:
+    $ gcloud scheduler jobs create http py-helloworld-invoker --schedule "*/1 * * * *" --http-method=GET --uri=https://py-helloworld-f6srfekjlq-de.a.run.app \
+       --oidc-service-account-email=410240967190-compute@developer.gserviceaccount.com \
+       [--oidc-token-audience=https://py-helloworld-f6srfekjlq-de.a.run.app] <== 一般來說與 --uri 內容不同才需要此項目
+    --------------------------------------------------------------------
+    內定情況, 使用 GET 可以成功, 用 PUT/POST 會失敗.
+    我因為沒有建立 service account, 所以後來是到 console UI 去選取 compute Engine default service account, 如下:
+    --------------------------------------------------------------------
+    Console UI:
+    Cloud Scheduler => 點選 py-helloworld-invoker => 至 Configuration the execution =>
+        Auth header 選擇 "Add OIDC token" => Service account 選擇 "Compute Engine default service account"
+    --------------------------------------------------------------------
+
+
+99. 其它課題
+  - Session affinity
+    透過一 30-day cookie, 使某一 client 的 request 只會傳遞給某一 service. 內定是系統完全隨機。
+    透過 Console UI, CLI (示範此) 或透過 YAML
+    --------------------------------------------------------------------
+    開啟此功能:
+    gcloud run services update <SERVICE> --session-affinity
+    關閉此功能:
+    gcloud run services update <SERVICE> --no-session-affinity
+    --------------------------------------------------------------------
+  - 顯示所有 Cloud Run service
+    --------------------------------------------------------------------
+    $ gcloud run services list
+    --------------------------------------------------------------------
+  - Copy service
+    透過 Console UI 或透過 YAML (示範後者)
+    Step 1: 匯出要被拷貝之 service 的 yaml 檔案.
+    --------------------------------------------------------------------
+    gcloud run services describe <SERVICE> --format export > service.yaml
+    實例:
+    $ gcloud run services describe py-helloworld --format export > service.yaml
+    --------------------------------------------------------------------
+    Step 2: 修改匯出的 yaml 檔案
+    --------------------------------------------------------------------
+    apiVersion: serving.knative.dev/v1
+    kind: Service
+    metadata:
+      annotations:
+        ...
+      name: <SERVICE>       <-- 可能修改此
+
+
+      ...
+    spec:
+      template:
+        metadata:
+          annotations:
+          ...
+          name: <REVISION>    <-- 可能修改此.
+    --------------------------------------------------------------------
+    <SERVICE>: 如果位於同 region, <SERVICE> 必須修改. 如果是要複製到另外一個 region, 則可以保留. (單一 region 內必須 unique)
+    <REVISION>: 格式為 <SERVICE>-(小數英、數字、-), 且末尾不得為 -
+    匯入新 YAML
+    --------------------------------------------------------------------
+    gcloud run services replace <SERVICE> [--region=<REGION>]
+    --------------------------------------------------------------------
+    --region: copy to different region.
+    

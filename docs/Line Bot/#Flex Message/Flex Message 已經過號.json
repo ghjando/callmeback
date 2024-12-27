@@ -1,0 +1,158 @@
+{
+  "type": "bubble",
+  "size": "kilo",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "box",
+            "layout": "baseline",
+            "contents": [
+              {
+                "type": "icon",
+                "url": "https://storage.googleapis.com/callme-398802_linebot_data/icons/triangle-exclamation-solid-red.png",
+                "size": "md",
+                "offsetTop": "xs"
+              }
+            ],
+            "width": "18px"
+          },
+          {
+            "type": "text",
+            "text": "已經過號了",
+            "color": "#58151C",
+            "size": "md",
+            "weight": "bold",
+            "flex": 0
+          }
+        ],
+        "backgroundColor": "#F8D7DA",
+        "cornerRadius": "md",
+        "paddingAll": "md"
+      },
+      {
+        "type": "separator",
+        "margin": "xxl",
+        "color": "#FFFFFF"
+      },
+      {
+        "type": "text",
+        "text": "信義耳鼻喉科診所",
+        "weight": "bold",
+        "size": "lg",
+        "color": "#609040"
+      },
+      {
+        "type": "separator",
+        "margin": "xl",
+        "color": "#FFFFFF"
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "text",
+            "text": "當前號碼",
+            "size": "md",
+            "weight": "bold",
+            "flex": 0
+          },
+          {
+            "type": "text",
+            "text": "35號",
+            "color": "#FF0000",
+            "size": "md",
+            "weight": "bold",
+            "margin": "lg"
+          }
+        ],
+        "paddingEnd": "md"
+      },
+      {
+        "type": "separator",
+        "margin": "xs",
+        "color": "#FFFFFF"
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "text",
+            "text": "上次跳號",
+            "size": "md",
+            "weight": "bold",
+            "flex": 0
+          },
+          {
+            "type": "text",
+            "text": "15分鐘前",
+            "color": "#999999",
+            "size": "md",
+            "weight": "bold",
+            "margin": "lg"
+          }
+        ]
+      },
+      {
+        "type": "separator",
+        "margin": "xs",
+        "color": "#FFFFFF"
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "text",
+            "text": "你的號碼",
+            "size": "md",
+            "weight": "bold",
+            "flex": 0
+          },
+          {
+            "type": "text",
+            "text": "36號",
+            "color": "#609040",
+            "size": "md",
+            "weight": "bold",
+            "margin": "lg"
+          }
+        ]
+      },
+      {
+        "type": "separator",
+        "margin": "sm",
+        "color": "#FFFFFF"
+      },
+      {
+        "type": "text",
+        "text": "(要變更號碼請直接輸入)",
+        "color": "#999999",
+        "size": "sm",
+        "weight": "bold",
+        "align": "start"
+      },
+      {
+        "type": "separator",
+        "margin": "sm",
+        "color": "#FFFFFF"
+      },
+      {
+        "type": "text",
+        "text": "資料更新於20秒前",
+        "color": "#999999",
+        "size": "sm",
+        "weight": "bold",
+        "margin": "xl",
+        "align": "end"
+      }
+    ]
+  }
+}

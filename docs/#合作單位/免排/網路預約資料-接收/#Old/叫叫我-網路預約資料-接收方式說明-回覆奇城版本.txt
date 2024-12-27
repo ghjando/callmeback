@@ -1,0 +1,47 @@
+網址：
+https://notify-user-410240967190.asia-east1.run.app/booking
+
+傳送方式：POST
+
+Content-Type: application/json
+
+資料格式(json)：
+{
+  "source_id": "mipa",
+  "action": "預約",
+  "callme_id": "VTk1NTQ3YjdiOWIxMjI2ZjA4NTYzODI1YzdmOGRiNTMz",
+  "user_name": "陳筱玲",
+  "shop_id": "2046",
+  "shop_name": "中正耳鼻喉科診所",
+  // 奇城新增以下
+  "booking_name": "xxx醫師", 
+  "booking_date": "20241102",
+  "booking_time": "0930",
+  "booking_num": "18",
+  
+  // 下面這幾項不要       // 原本欄位是希望用更彈性的方式，包含各種預約方式，說明如下：
+  "caller_id": "2046-0",  // 若能得知此欄，則可更明確知道使用者預約哪一診間，若無法取得，則填空白。
+  "caller_name": "一診",  // 此欄即是 booking_name，可以是診間名稱，也可以是醫師名稱。
+  "date": "20241102",     // 以下四欄是彈性選用：
+  "time_period": "早上",  // 若有時段，或只有時段，則填此欄，若無則空白。
+  "time_begin": "0930",   // 若有開始時間，或只有一個時間，則填此欄，若無則空白。
+  "time_end": "1000",     // 若有結束時間，則填此欄，若無則空白。
+  "number": "18"          // 若有預約號碼，則填此欄，若無則空白。
+}                         // **以上只要填寫 caller_name, date, time_begin, number 四個欄位，即與 "奇城版" 相同。
+
+欄位說明：
+  *source_id    - 訊息來源, "mipa" 表示免排
+  *action       - 預約/取消
+  *user_id      - 即 callme_id
+  user_name     - 姓名
+  shop_id       - 店家代碼
+  *shop_name    - 店家名稱
+  caller_id     - 叫號機代碼
+  *caller_name  - 叫號機名稱(即診間名稱)
+  *date         - 預約日期 (格式：YYYYMMDD)
+  time_period   - 預約時段 (早上/下午/晚上)
+  time_begin    - 預約起始時間 (格式：hhmm)
+  time_end      - 預約結束時間 (格式：hhmm)
+  number        - 預約號碼
+  
+  * 為必要欄位，不可為空白

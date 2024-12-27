@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>XXX診所</title>
+</head>
+<body>
+    <h1>XXX診所</h1>
+    目前叫號: <span id="call_num"></span>
+    <script>
+        var ws_socket = null;
+        function ws_onmessage(e) {
+            // 連線成功後，如果有叫號資料改變，這裡會收到訊息            
+            try {
+                // callers, 是陣列資料
+                // callers[0].change: 表示是否叫號有變動
+                // callers[0].call_nums: 目前叫號機號碼
+                // callers[0].last_update: 離線時間，0表示連線中，當 >1 表示最後更新時間，例如:3，表示3分鐘前更新
+                var callers = JSON.parse(e.data);
+                let disp = '';
+                for(i=0; i < callers.length; i++){
+                    if(callers[i].call_nums != ''){
+                        let nums = JSON.parse(callers[i].call_nums);
+                        disp += `<div>叫號機(ID:${callers[i].id}): 叫號:${nums[0]}號 (last_update:${callers[i].last_update})</div>`;
+                    }                    
+                }
+                document.getElementById("call_num").innerHTML = disp;                
+            } catch (err) {
+
+            }
+        }
+
+        function wsQueryCaller() {
+            var msg = {
+                type: "query",
+                text: "2391" // 填入診所ID, 如果一次要查詢多個叫號機可以用逗號隔開，例如： "3,4,5"
+            };
+            ws_socket.send(JSON.stringify(msg));
+        }
+
+        function ws_onopen(e) {
+            wsQueryCaller();
+        }
+
+        function ws_onclose(e) {
+            ws_socket = null;
+        }
+
+        function ws_onerror(e) {
+            ws_socket = null;
+        }
+        function chkWsSocket() {
+            try {
+                if ((ws_socket === null) || (ws_socket.readyState === WS_CLOSED)) {
+                    ws_protocol = "wss";
+                    ws_socket = new WebSocket(ws_protocol + "://www.mainpi.com/.ws_mainpi/");
+                    ws_socket.onopen = ws_onopen;
+                    ws_socket.onmessage = ws_onmessage;
+                    ws_socket.onclose = ws_onclose;
+                    ws_socket.onerror = ws_onerror;
+                }
+            } catch (e) {
+                console.log("e:" + e.message);
+            }
+            return;
+        }
+        // 查詢叫號
+        function QueryCaller() {
+          if(ws_socket !== null){
+            wsQueryCaller();
+          }else{
+            chkWsSocket();
+          }
+        }
+
+         // Trigger query code
+        QueryCaller();
+        // 設定定期查詢更新
+        setInterval(QueryCaller, 30000);
+    </script>
+</body>
+
+</html>

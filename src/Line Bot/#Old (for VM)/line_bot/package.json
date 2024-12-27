@@ -1,0 +1,33 @@
+{
+  "name": "line_bot",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "line_bot.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@line/bot-sdk": "^7.5.2",
+    "@line/liff": "^2.23.2",
+    "axios": "^1.7.2",
+    "body-parser": "^1.20.2",
+    "chokidar": "^3.6.0",
+    "colors": "^1.4.0",
+    "esm": "^3.2.25",
+    "express": "^4.19.2",
+    "firebase": "^10.12.1",
+    "firebase-admin": "^12.1.1",
+    "line-bot-sdk": "0.0.12",
+    "path": "^0.12.7",
+    "pinyin": "^4.0.0-alpha.0",
+    "qs": "^6.12.1",
+    "querystring": "^0.2.1",
+    "segmentit": "^2.0.3",
+    "sharp": "^0.32.6",
+    "url": "^0.11.3"
+  },
+  "keywords": [],
+  "description": ""
+}

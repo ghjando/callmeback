@@ -1,0 +1,4 @@
+.dockerignore
+Dockerfile
+docker_run.sh
+deploy.sh

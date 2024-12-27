@@ -1,0 +1,8 @@
+trial VM
+https://trial.callmeback.com.tw/webhook
+
+trial Cloud Run
+https://line-bot-306511771181.asia-east1.run.app/webhook
+
+live Cloud Run
+https://line-bot-410240967190.asia-east1.run.app/webhook

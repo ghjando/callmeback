@@ -1,0 +1,60 @@
+網址：
+https://notify-user-410240967190.asia-east1.run.app/booking
+
+傳送方式：POST
+
+Content-Type: application/json
+
+"預約"資料格式(json)：
+{
+  "source_id": "mipa", 
+  "action": "預約",
+  "callme_id": "VTk1NTQ3YjdiOWIxMjI2ZjA4NTYzODI1YzdmOGRiNTMz",
+  "user_name": "陳筱玲",
+  "shop_id": "2046",
+  "shop_name": "中正耳鼻喉科診所",
+  "booking_name": "一診",
+  "booking_date": "2024-11-02",
+  "booking_time": "09:30:00",
+  "booking_num": "18",
+  "booking_time_id": "123456",
+  "hash":""
+}
+
+"取消預約"資料格式(json)：
+{
+  "source_id": "mipa",
+  "action": "取消預約",
+  "callme_id": "VTk1NTQ3YjdiOWIxMjI2ZjA4NTYzODI1YzdmOGRiNTMz",
+  "booking_date": "2024-11-02",
+  "booking_time_id": "123456",
+  "hash":""
+}
+
+
+欄位說明：
+  source_id         - 訊息來源, "mipa" 表示免排
+  action            - 預約/取消預約
+  callme_id         - callme id
+  user_name         - 姓名
+  shop_id           - 店家代碼
+  shop_name         - 店家名稱
+  booking_name      - 預約項目名稱 (診別/醫生/打疫苗/醫美諮詢)
+  booking_date      - 預約日期 (格式：YYYY-MM-DD)
+  booking_time      - 預約時間 (格式：hh:mm:ss)
+  booking_num       - 預約號碼
+  booking_time_id   - unique id 
+  hash              - hash = md5("<source_id>_<booking_time_id>_callme"); 例如：md5("mipa_123456_callme")
+
+
+=============================
+網頁"提醒我"按鈕 訊息傳送方式
+=============================
+1. 先將資料 POST 到叫叫我平台，資料格式同上，但不含 callme_id。
+
+2. 再將 user 導向以下連結
+https://line-bot-410240967190.asia-east1.run.app/booking_remind?booking_data=陳筱玲(11月2日 09:30, 18號)
+
+日期時間格式為 M月D日 hh:mm
+M 和 D 可為 1~2位數字
+hh 和 mm 都固定為 2位數字

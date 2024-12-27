@@ -1,0 +1,66 @@
+{
+  "type": "bubble",
+  "size": "kilo",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "contents": [
+      {
+        "type": "text",
+        "text": "找到多筆資料，請選擇："
+      },
+      {
+        "type": "separator",
+        "margin": "lg",
+        "color": "#FFFFFF"
+      },
+      {
+        "type": "text",
+        "text": "信義耳鼻喉科診所",
+        "action": {
+          "type": "postback",
+          "label": "信義耳鼻喉科診所",
+          "data": "信義耳鼻喉科診所"
+        },
+        "color": "#406898"
+      },
+      {
+        "type": "separator",
+        "margin": "md",
+        "color": "#FFFFFF"
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "text",
+            "text": "儷寶得信義皮膚科診所",
+            "action": {
+              "type": "postback",
+              "label": "信義耳鼻喉科診所",
+              "data": "信義耳鼻喉科診所"
+            },
+            "color": "#406898"
+          },
+          {
+            "type": "text",
+            "text": "立即預約",
+            "color": "#0D6EFD",
+            "size": "sm",
+            "weight": "bold",
+            "decoration": "underline",
+            "action": {
+              "type": "uri",
+              "label": "action",
+              "uri": "http://linecorp.com/"
+            },
+            "flex": 0,
+            "gravity": "bottom",
+            "margin": "lg"
+          }
+        ]
+      }
+    ]
+  }
+}

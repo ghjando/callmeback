@@ -1,0 +1,94 @@
+{
+  "type": "bubble",
+  "size": "kilo",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "paddingAll": "10px",
+    "contents": [
+      {
+        "type": "text",
+        "text": "已收到預約資訊：",
+        "size": "15px",
+        "color": "#000000"
+      },
+      {
+        "type": "text",
+        "text": "華幼診所  兒科/成人  耳鼻喉",
+        "size": "15px",
+        "color": "#000000"
+      },
+      {
+        "type": "text",
+        "text": "治療  看診進度/門診公告 夜診",
+        "size": "15px",
+        "color": "#000000"
+      },
+      {
+        "type": "text",
+        "text": "門診公告 夜診",
+        "size": "15px",
+        "color": "#000000"
+      },
+      {
+        "type": "text",
+        "text": "姓名：jando wu",
+        "size": "15px",
+        "color": "#000000"
+      },
+      {
+        "type": "text",
+        "text": "日期：2024-12-20 (星期五)",
+        "size": "15px",
+        "color": "#000000"
+      },
+      {
+        "type": "text",
+        "text": "時間：20:00",
+        "size": "15px",
+        "color": "#000000"
+      },
+      {
+        "type": "text",
+        "text": "號碼：2",
+        "size": "15px",
+        "color": "#000000"
+      },
+      {
+        "type": "separator",
+        "margin": "lg",
+        "color": "#FFFFFF"
+      },
+      {
+        "type": "text",
+        "text": "將於預約日前一天☀️𝟵:𝟬𝟬提醒您",
+        "size": "15px",
+        "color": "#000000"
+      },
+      {
+        "type": "text",
+        "text": "(逾上述時間後預約，將不再提醒)",
+        "size": "15px",
+        "color": "#000000"
+      },
+      {
+        "type": "separator",
+        "margin": "lg",
+        "color": "#FFFFFF"
+      },
+      {
+        "type": "text",
+        "text": "取消預約",
+        "size": "sm",
+        "color": "#0D6EFD",
+        "weight": "bold",
+        "decoration": "underline",
+        "action": {
+          "type": "uri",
+          "label": "action",
+          "uri": "http://linecorp.com/"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "20241106": {
+    "U95547b7b9b1226f08563825c7f8db533": {
+      "中正耳鼻喉科診所 一診": {
+        "source_id": "mipa",
+        "action": "預約",
+        "user_id": "U95547b7b9b1226f08563825c7f8db533",
+        "user_name": "陳筱玲",
+        "shop_id": "2046",
+        "shop_name": "中正耳鼻喉科診所",
+        "booking_name": "一診", 
+        "booking_date": "20241106",
+        "booking_time": "0930",
+        "booking_num": "18"
+      },
+      "中正耳鼻喉科診所 二診": {
+        "source_id": "mipa",
+        "action": "預約",
+        "user_id": "U95547b7b9b1226f08563825c7f8db533",
+        "user_name": "陳筱玲",
+        "shop_id": "2046",
+        "shop_name": "中正耳鼻喉科診所",
+        "booking_name": "二診", 
+        "booking_date": "20241106",
+        "booking_time": "1400",
+        "booking_num": "27"
+      },
+      "李聰明內科診所": {
+        "source_id": "mipa",
+        "action": "預約",
+        "user_id": "U95547b7b9b1226f08563825c7f8db533",
+        "user_name": "陳筱玲",
+        "shop_id": "",
+        "shop_name": "李聰明內科診所",
+        "booking_name": "", 
+        "booking_date": "20241106",
+        "booking_time": "2030",
+        "booking_num": ""
+      },
+      "喜悅中醫 一診": {
+        "source_id": "mipa",
+        "action": "預約",
+        "user_id": "U95547b7b9b1226f08563825c7f8db533",
+        "user_name": "陳筱玲",
+        "shop_id": "1896",
+        "shop_name": "喜悅中醫",
+        "booking_name": "一診", 
+        "booking_date": "20241106",
+        "booking_time": "",
+        "booking_num": "36"
+      }
+    }
+  }
+}

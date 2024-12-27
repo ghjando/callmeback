@@ -1,0 +1,728 @@
+Docker 講義 I
+
+Update: 
+2024/7/31 - Docker volume 一些修正.
+2024/7/26 - 加上 WSL version 2 設定.
+2024/7/5
+
+目錄:
+Docker - Google Cloud CLI 環境準備 (I)
+Docker - 開發與執行環境準備 (II)
+Docker - 基本開發概念 (III)
+
+
+================================================
+Docker - Google Cloud CLI 環境準備 (I)
+於 Ubuntu 下, 安裝與設定 Google Cloud CLI 環境
+================================================
+1. 概念:
+   透過 Local 端的命令列環境來操作 GCP, 可以達到最佳操作效率, 因為可以透過複製貼上以及 Batch file 來一次執行多個步驟.
+   於 Local 端安裝以及設定 Google Cloud CLI, 使其成為 Cloud Shell 來達成此目的.
+   為了命令的一致性, 個人強烈建議使用 Linux 環境, 尤其是 Ubuntu. (以下的介紹皆於此)
+   
+2. 如果目前使用 Windows PC, 可以透過安裝 Linux VM, 或是直接安裝/設定一個 WSL (Windows Subsystem for Linux) 於 Windows OS 之下:
+  - 注意! 安裝前, 請確認一些 BIOS/OS 選項請確認有開啟, WIN10/11 皆可參考如下.
+    https://support.microsoft.com/zh-tw/windows/%E5%9C%A8-windows-11-%E9%9B%BB%E8%85%A6%E4%B8%8A%E5%95%9F%E7%94%A8%E8%99%9B%E6%93%AC%E5%8C%96-c5578302-6e43-4b4b-a449-8ced115f58e1
+  - 以下安章 WSL version 2
+    ----------------------------------------------------------------------
+    wsl --set-version Ubuntu-20.04 2
+    ----------------------------------------------------------------------
+  - 啟動 Powershull 或 cmd
+  - 執行如下命令:
+    ----------------------------------------------------------------------
+    PS> wsl --install   (內定安裝 Ubuntu)
+    ----------------------------------------------------------------------
+    (依指示進行. 可能會要求事先提升至 Administrator 權限)
+  參考: https://cloud.google.com/sdk/docs/install-sdk
+
+3. 安裝 Google Cloud CLI (Google Cloud SDK)
+  - 步驟依序如下: (# 開頭的內容為註解, 可不執行):
+    ----------------------------------------------------------------------
+    $ sudo apt-get update
+    $ sudo apt-get install apt-transport-https ca-certificates gnupg curl
+    # 以下步驟, 用來註冊 GCP 專屬 apt repositry 至本地端, 目的是保持及時更新.
+    # import public key
+    $ curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+    # Add the gcloud CLI distribution URI as a package source.  (注意! 避免重複執行下面一行)
+    $ echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | sudo tee -a /etc/apt/sources.list.d/google-cloud-sdk.list
+    # ----
+    $ sudo apt-get update && sudo apt-get install google-cloud-cli
+    ----------------------------------------------------------------------
+
+4. 設定 Google Cloud CLI (Google Cloud SDK)
+  - 執行如下命令 gcloud init 來啟動設定. 之後如果要變更設定也可以執行此。
+    ----------------------------------------------------------------------
+    $ gcloud init [--console-only]
+    To continue, you must log in. Would you like to log in (Y/n)? Y
+    (進行登入至 GCP 的動作, 以確認此 Google Cloud CLI 的執行身分)
+    Pick cloud project to use:
+    [1] [my-project-1]
+    [2] [my-project-2]
+    ...
+    Please enter your numeric choice:
+    ...
+    ----------------------------------------------------------------------
+
+5. Google Cloud CLI 基本操作
+  - 命令範例: 列出目前 account:
+    ----------------------------------------------------------------------
+    # gcloud auth list
+    Credentialed Accounts
+    ACTIVE  ACCOUNT
+    *       killbugchance@gmail.com
+
+    To set the active account, run:
+        $ gcloud config set account `ACCOUNT`
+    ----------------------------------------------------------------------
+
+  - 命令範例: 列出目前設定 (事先儲存於本地的某些設定值, 故之後在命令列中可以省略它們)
+    ----------------------------------------------------------------------
+    # gcloud config list
+    [compute]
+    region = asia-east1
+    zone = asia-east1-b
+    [core]
+    account = killbugchance@gmail.com
+    disable_usage_reporting = True
+    project = callme-398802
+    [run]
+    region = asia-east1
+
+    Your active configuration is: [default]
+    ----------------------------------------------------------------------
+    補充: 這些資料內定會儲存於檔案  ~/.config/gcloud/configurations/config_default 內.
+
+  - 命令範例: 承上, 增加/修改某設定:
+    格式: gcloud config set <CONFIG_ITEM> <VALUE>
+    範例一: 設定內定專案.
+    ----------------------------------------------------------------------
+    格式: gcloud config set project <PROJECT_NAME>
+    $ gcloud config set project callme-398802
+    ----------------------------------------------------------------------
+    範例二: 設定 Compute engine 的內定 zone.
+    ----------------------------------------------------------------------
+    格式: gcloud config set compute/zone <ZONE_NAME>
+    $ gcloud config set compute/zone asia-east1-b
+    ----------------------------------------------------------------------
+    
+  - 命令範例: 承上, 查詢某設定
+    格式: gcloud config get-value <ITEM>
+    範例一: 取得內定專案值.
+    ----------------------------------------------------------------------
+    $ gcloud config get-value project
+    callme-398802
+    ----------------------------------------------------------------------
+    範例二: 設定 Compute engine 的內定 zone 值.
+    ----------------------------------------------------------------------
+    $ gcloud config get-value compute/zone
+    asia-east1-b
+    ----------------------------------------------------------------------
+    
+  - 命令範例: 列出 Google Cloud CLI 相關設定資訊、環境變數:
+    ----------------------------------------------------------------------
+    # gcloud info
+    Google Cloud SDK [477.0.0]
+
+    Platform: [Linux, x86_64] uname_result(system='Linux', node='ChanceNB-1T16i7', release='5.15.153.1-microsoft-standard-WSL2', version='#1 SMP Fri Mar 29 23:14:13 UTC 2024', machine='x86_64')
+    Locale: ('en_US', 'UTF-8')
+    Python Version: [3.11.8 (main, Mar  6 2024, 21:56:16) [Clang 17.0.6 ]]
+    ...
+    Installation Root: [~/google-cloud-sdk]
+    Installed Components:
+      core: [2024.05.17]
+    ...
+    Account: [killbugchance@gmail.com]
+    Project: [callme-398802]
+    Universe Domain: [googleapis.com]
+    ...
+    Current Properties:
+      [compute]
+        zone: [asia-east1-b] (property file)
+        region: [asia-east1] (property file)
+    ...
+    Logs Directory: [~/.config/gcloud/logs]
+    Last Log File: [~/.config/gcloud/logs/2024.06.17/16.20.34.283827.log]
+    ...
+    git: [git version 2.34.1]
+    ssh: [OpenSSH_8.9p1 Ubuntu-3ubuntu0.7, OpenSSL 3.0.2 15 Mar 2022]
+    
+    ----------------------------------------------------------------------
+
+6. 保持 Google Gloud CLI 的更新
+  - 每隔一段時間或收到提醒, 應執行如下:
+    ----------------------------------------------------------------------
+    $ gcloud components update
+    ...
+    ----------------------------------------------------------------------
+
+================================================
+Docker - 開發與執行環境準備 (II)
+於 Ubuntu 下, 安裝與設定 Docker 開發環境
+================================================
+1. 於 Ubuntu 下安裝並設定 Docker
+  - 安裝步驟:
+    參考: https://docs.docker.com/engine/install/ubuntu/
+    ----------------------------------------------------------------------
+    # Add Docker's official GPG key:
+    $ sudo apt-get update
+    $ sudo apt-get install ca-certificates curl
+    
+    # 如果不想追隨最新版本, 以下可省略.
+    $ sudo install -m 0755 -d /etc/apt/keyrings
+    $ sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+    $ sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+    # Add the repository to Apt sources:
+    $ echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+      $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+      sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    $ sudo apt-get update
+    # 如果不想追隨最新版本, 省略部分到此結束.
+    
+    $ sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    ----------------------------------------------------------------------
+    注意! 如果不太在乎要一直跟隨最新版本, 上述中間用來設定 repository 的命令可以省略, 一樣可以安裝. (如果發生問題, 請通知我修改)
+
+2. 使每次執行 docker 命令前面可省略 'sudo' (For Ubuntu. Optional)
+  - 概念是將目前使用者加進 docker 群組.
+    參考: https://askubuntu.com/questions/477551/how-can-i-use-docker-without-sudo
+    ----------------------------------------------------------------------
+    $ sudo groupadd docker    <-- 如果 docker 群組不存在才進行此.
+    $ sudo gpasswd -a $USER docker
+    ----------------------------------------------------------------------
+    上述動作完成後必須重新登入來使 group 生效.
+
+
+3. 概念:
+  - 名詞解釋 Docker vs. Container vs. Image
+    - Docker
+      公司,
+      Docker container 規格制定者
+      Docker Container 製作者 (管理 containers 的啟動、資源協調、關閉等)
+    - Container
+      輕量級虛擬執行環境技術的標準. 其中一種實作與詳細規格由 Docker 社群/公司所制定, 並廣為流傳.
+      被執行的 image
+    - Image
+      以檔案方式存在的 Docker 封裝.
+
+  - 資料流方塊圖:
+
+    Linux console / Operator                Docker Hub (remote website: docker.io)
+    +------------------+                    +---------------------+
+    |$ docker build .. |                    |image                |-+
+    |$ docker contai . |                    |                     | |-+
+    |                  |                    |                     | | |
+    |                  |                    +---------------------+ | |
+    |                  |                      +---------------------+ |
+    +------------------+                        +---------------------+
+          |
+          |                                    | | pull     ^
+          |                                   \| |/        / \ 
+          |                                    \ /        /| |\
+          |                                     v          | | push
+          V       
+    Docker daemon/engine                    Local image repository                       GCP Artifact registry (docker type)
+    +---------------------+                 +---------------------+               \     +---------------------+
+    |                     |                 |image1               |-+     --------- \   |image                |-+
+    |                     |---------------->|                     | |-+     push     >  |                     | |-+
+    |                     | [image] build   |                     | | |   --------- /   |                     | | |
+    |                     | image pull      +---------------------+ | |           /     +---------------------+ | |
+    |                     |                   +---------------------+ |                   +---------------------+ |
+    +---------------------+                     +---------------------+                     +---------------------+
+                   |                        Store built or downloaded images.
+                   | 
+                   |                             | | run
+                   |                            \| |/
+                   |                             \ /
+                   |                              v
+                   |
+                   |                   Container run in local
+                   |                   +---------------------+
+                   |                   |container1           |-+
+                   +------------------>|                     | |-+
+                   [container] run     |                     | | |
+                                       +---------------------+ | |
+                                         +---------------------+ |
+                                           +---------------------+
+                                       Launched from local image
+
+  上圖中所包含的命令:
+    docker [image] build . --tag <IMAGE>[:<TAG>]
+    docker image pull <IMAGE>[:<TAG>]
+    docker [container] run <IMAGE>[:<TAG>]
+    docker [container] run <IMAGE>[:<TAG>]
+                                    
+4. 讓 local docker 環境與 GCP 進行連結, 需進行如下設定.
+  - 目的是讓 docker 可以直接於內部執行 gcloud 命令, 例如可將 local image 上傳至指定 GCP Artifact registry
+  - 安裝 docker 後必須執行如下:
+    --------------------------------------------------------------------
+    $ gcloud auth configure-docker
+    $ gcloud components install docker-credential-gcr
+    --------------------------------------------------------------------
+  - 設定 Docker 能存取指定 Artifact registry
+    格式: gcloud auth configure-docker <LOCATION>-docker.pkg.dev
+    --------------------------------------------------------------------
+    $ gcloud auth configure-docker asia-east1-docker.pkg.dev
+    --------------------------------------------------------------------
+    此命令將會修改 local 端的 ~/.docker/config.json 檔案, 加上一行:
+    "asia-east1-docker.pkg.dev": "gcloud"
+
+5. 自外部下載某一 image 並儲存至本地端 (local image repository)
+  - 這裡僅介紹自 Docker Hub 下載 image
+  - 格式: docker image pull [OPTION] <IMAGE>[:<TAG>|<@DIGEST>]
+    --------------------------------------------------------------------
+    $ sudo docker image pull diamol/ch02-hello-diamol
+    Unable to find image 'diamol/ch02-hello-diamol:latest' locally
+    ...
+    --------------------------------------------------------------------
+    註: 如果 local image 已經存在且 hash 一致, 就不會進行下載動作.
+
+6. 於 local 端啟動指定 container
+  - 將於 local 端尋找該 image 然後將其啟動.
+    如果找不到該 image, 內定會自動自 Docker Hub 下載至 local image repository 後再啟動.
+  - 格式: docker [container] run [OPTIONS] <IMAGE>[:<TAG>] [ARG...]
+    --------------------------------------------------------------------
+    $ sudo docker container run diamol/ch02-hello-diamol
+    Unable to find image 'diamol/ch02-hello-diamol:latest' locally
+    ...
+    其它範例:
+    $ sudo docker container run -d -p 8080:80 diamol/ch02-hello-diamol1-web
+    $ sudo docker container run -d --name web-ping diamol/ch03-web-ping
+    $ sudo docker container run --env TARGET=google.com -d --name web-ping diamol/ch03-web-ping
+    --------------------------------------------------------------------
+    -d, --detach: 表示於 background 執行 (不霸佔 console)
+    --name: 可給予名稱來代替 container id
+    -p front-port:backend-port  配置對外 listen port.
+    -e, --env TARGET=google.com 設定環境變數(key=value pair(s)).
+  - 於背景執行以及回復至前景
+    透過 docker [container] run -d 或 docker [container] run --detach 可以於啟動 container 時直接於背景執行.
+    之後可以透過 docker [container] attach <CONTAINER_ID> 來重新連結該 container 至目前 console.
+    如果已經在前景, 想要將其改放到背景, 查詢中 (todo)
+  - 指定專屬環境變數 (參數 -e 或 --env)
+    透過環境變數來傳遞參數給 container 進行個別設定/控制是 container 生態非常普遍的做法.
+    此環境變數與本機的環境變數完全獨立.
+    --------------------------------------------------------------------
+    範例:
+    $ sudo docker container run --env TARGET=google.com -e INTERVAL=4000 -d -name web-ping diamol/ch03-web-ping
+    --------------------------------------------------------------------
+
+7. 結束某 container 的執行
+  - 格式: docker container stop [OPTIONS] <CONTAINER IDs...>
+         ID 可以只要 prefix 部分, 但如果發現重複, 就會失敗.
+    --------------------------------------------------------------------
+    $ docker container ls
+    CONTAINER ID   IMAGE              COMMAND                  CREATED         STATUS         PORTS     NAMES
+    d90d0fe3696d   image-of-the-day   "java -jar /app/iotd…"   6 seconds ago   Up 5 seconds   80/tcp    mystifying_hoover
+    $ docker stop d90
+    d90
+    $ docker container ls
+    CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+    --------------------------------------------------------------------
+
+8. 編譯 source 至 image 並儲存於本地端
+  - 建議先 cd 至 source 根目錄. 該目錄必須內含檔案 'Dockerfile'
+  - 格式: (通用)
+    docker build [OPTIONS] <PATH|URL|-> --tag <IMAGE>[:<TAG>]
+    <IMAGE> 作為 image 識別名稱, 必須與其他 image 不同, 否則表示要進行壓蓋.
+    <TAG> 一般作為某一 image 的各個變體 (不同版本/測試版/特殊版) 的識別. 未指定此的情況下, 將內定為 'latest'.
+  - 格式: 如果未來要上傳至指定 GCP project 的 Artifact registry, 請依照如下規則.
+    docker build [OPTIONS] <source dir> --tag <REGION>-docker.pkg.dev/<PROJECT_ID>/<REPO>/<IMAGE>[:<TAG>]
+    此處的 <PROJECT_ID> 和 <REPO> 都要事先已經存在.
+    ----------------------------------------------------------------------
+    $ PROJECT_ID=$(gcloud config get-value project)    
+    $ sudo docker build . --tag asia-east1-docker.pkg.dev/$PROJECT_ID/my-repo-1/py-helloworld
+    ----------------------------------------------------------------------
+    註解: 請不要使用 [<asia|eu>.]gcr.io/<PROJECT_ID>/<SERVICE_NAME>[:<TAG>] 這樣的格式,
+         除非為了使用即將廢除的 Container registry 系統 (Artifact registry 前身).
+    $PROJECT_ID 會被行內擴展成例如: callme-398802
+  - 格式: 如果未來要上傳至 Docker Hub
+    docker build [OPTIONS] <source dir> --tag <account>/<IMAGE>[:<TAG>]
+    詳見下述.
+
+9. Docker image 基本操作
+  - 顯示目前存在於 local 端的 image (編譯好儲存成檔案型態的 package)
+    格式: docker image ls [OPTIONS] [<REPOSITORY>[:<TAG>]]
+         OPTIONS: -a, --all       show all images including intermediate (Exit) or system ones
+                      -all        show all images including intermediate (Exit) but excluding system ones
+                  -f, --filter    filter string
+                  -q, --quiet     display IMAGE ID only
+    ----------------------------------------------------------------------
+    $ sudo docker image ls
+    REPOSITORY                                                        TAG       IMAGE ID       CREATED          SIZE
+    asia-east1-docker.pkg.dev/callme-398802/my-repo-1/py-helloworld   latest    3407e8f76b9a   43 minutes ago   75.3MB
+    diamol/node                                                       latest    9dfa73010b19   5 years ago      75.3MB
+    ----------------------------------------------------------------------
+    ls 後面可以接萬用字元, 已顯示定的 例如 'w*', 'wx*', 分別表示名稱開頭為 a 或 wx 的 images.
+  - 刪除指定 image
+    要求刪除儲存於 local 端的 image.
+    格式: sudo docker image rm [-f] <IMAGE IDs...|IMAGE NAME[:TAG]...>
+         ID 可以只要 prefix 部分, 但如果發現重複, 就會失敗. 但 IMAGE NAME 必須完整.
+    --------------------------------------------------------------------
+    例如:
+    $ sudo docker image rm -f diamol/node
+    $ sudo docker image rm -f $(sudo docker image ls -q)        <-- 強迫刪除所有 images
+    --------------------------------------------------------------------
+
+10. Docker container 基本操作
+  - 顯示目前執行於 local 端的 containers (docker runtime)
+    格式: docker container ls [OPTIONS]
+         OPTIONS: -a, --all       show all container (包括休眠或經結束)
+                  -f, --filter    filter string
+                  -q, --quiet     display CONTAINER ID only
+    ----------------------------------------------------------------------
+    $ sudo docker container ls
+    CONTAINER ID   IMAGE                                                             COMMAND                  CREATED         STATUS         PORTS     NAMES
+    80c35220d273   asia-east1-docker.pkg.dev/callme-398802/my-repo-1/py-helloworld   "docker-entrypoint.s…"   7 seconds ago   Up 6 seconds             happy_shockley
+    ----------------------------------------------------------------------
+  - 觀看某 container log
+    格式: docker container logs [OPTIONS] <CONTAINER ID>
+         ID 可以只要 prefix 部分, 但如果發現重複, 就會失敗.
+    --------------------------------------------------------------------
+    $ sudo docker container logs 80c
+    ** web-ping ** Pinging: blog.sixeyed.com; method: HEAD; 3000ms intervals
+    Making request number: 1; at 1718784630067
+    Got response status: 200 at 1718784630995; duration: 928ms
+    Making request number: 2; at 1718784633070
+    ...
+    --------------------------------------------------------------------
+  - 觀看 container 使用資源
+    會大約每 1 秒更新一次狀態於 console 第一列.
+    格式: docker container stats [OPTIONS] <CONTAINER ID>       ID 可以只要 prefix 部分, 但如果發現重複, 就會失敗.
+    --------------------------------------------------------------------
+    $ sudo docker container stats <CONTAINER ID>       ID 可以只要 prefix 部分, 但如果發現重複, 就會回應失敗.
+    CONTAINER ID   NAME             CPU %     MEM USAGE / LIMIT    MEM %     NET I/O           BLOCK I/O   PIDS
+    c7f8d6a0393f   happy_shockley   0.00%     17.95MiB / 7.58GiB   0.23%     26.9MB / 18.4MB   0B / 0B     11
+    --------------------------------------------------------------------
+  - 刪除 container  (用來結束某 container 的執行並釋放記憶體)
+    格式: docker container rm [-f] <CONTAINER IDs...>
+    --------------------------------------------------------------------
+    例如:
+    $ sudo docker container rm -f $(sudo docker container ls -qa)  <-- 強迫刪除所有 containers
+    --------------------------------------------------------------------
+
+
+================================================
+Docker - 基本開發概念 (III)
+================================================
+1. 基礎 Dockerfile 範例:
+  - Dockerfile reference: 
+    https://docs.docker.com/reference/dockerfile/
+  - Dockerfile for Python 範例:
+    --------------------------------------------------------------------
+    FROM python:3.11-slim
+
+    # Allow statements and log messages to immediately appear in the logs
+    ENV PYTHONUNBUFFERED True
+
+    # Copy local code to the container image.
+    ENV APP_HOME /app
+    WORKDIR $APP_HOME
+    COPY . ./
+
+    # Install production dependencies.
+    RUN pip install --no-cache-dir -r requirements.txt
+
+    # Run the web service on container startup. Here we use the gunicorn
+    # webserver, with one worker process and 8 threads.
+    # For environments with multiple CPU cores, increase the number of workers
+    # to be equal to the cores available.
+    # Timeout is set to 0 to disable the timeouts of the workers to allow Cloud Run to handle instance scaling.
+    CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 main:app
+    --------------------------------------------------------------------
+    一些命令說明:
+      - WORKDIR /<path>/<to>/<workdir>: 於 container 內 change directory 至該目錄, 如果不存在則自動先建立. 
+        如果使用相對路徑, 則將相對於上一個 WORKDIR 命令.
+        WORDDIR 將做為後續 CMD/ENTRYPOINT/COPY/ADD 等命令的目前目錄.
+      - COPY [OPTIONS] <src> [<src2> [...]] <dest>
+        <src#> 相對於 source code 所在路徑. 如果有 --from=<name> 參數, 則是相對於該中間 container 路徑.
+        <dest> 則是位於 container, 絕對路徑或是相對於之前 WORKDIR 命令的相對路徑.
+  - Node.js 範例: (書裡面 ch03/exercises/web-ping)
+    --------------------------------------------------------------------
+    FROM diamol/node
+    ENV TAGET="blog.sixeyed.com"
+    ENV METHOD="HEAD"
+    ENV INTERVAL="3000"
+    
+    WORKDIR /web-pin
+    COPY app.js .
+    
+    CMD ["node", "/web-ping/app.js"]
+    --------------------------------------------------------------------
+    $ sudo docker image build . --tag web-ping
+    $ sudo docker container run -d --name we-ping --env TARGET=google.com --env INTERVAL=5000 web-ping
+
+2. 多階段 Dockerfile
+  - 最基礎範例:
+    --------------------------------------------------------------------
+    FROM diamol/base AS build-stage
+    RUN echo 'Building...' > /build.txt
+
+    FROM diamol/base AS test-stage
+    COPY --from=build-stage /build.txt /build.txt
+    RUN echo 'Testing...' >> /build.txt
+
+    FROM diamol/base
+    COPY --from=test-stage /build.txt /build.txt
+    CMD cat /build.txt
+    --------------------------------------------------------------------
+    $ sudo docker image build . --tag multi-stage
+    $ sudo docker container run multi-stage
+    
+  - 更一般化的範例. 建立 service 並 listen 於 port 80
+    (書中 ch04/exercises/image-of-the-day)
+    --------------------------------------------------------------------
+    FROM diamol/maven AS builder
+
+    WORKDIR /usr/src/iotd
+    COPY pom.xml .
+    RUN mvn -B dependency:go-offline
+
+    COPY . .
+    RUN mvn package
+
+    # app
+    FROM diamol/openjdk
+
+    WORKDIR /app
+    COPY --from=builder /usr/src/iotd/target/iotd-service-0.1.0.jar .
+
+    EXPOSE 80
+    ENTRYPOINT ["java", "-jar", "/app/iotd-service-0.1.0.jar"]
+    --------------------------------------------------------------------
+    $ docker image build . -t image-of-the-day
+    一些命令說明:
+      - EXPOSE <port>[/tcp|/udp] 僅是一種文件做用, 用來告知執行 container 者, 有哪個/些 port 要開啟. 沒有此也不影響功能.
+        實際上, 必須透過 docker container run -p <front port>:<back port> 來真正開啟與轉換
+      - ENTRYPOINT 與 CMD 意義幾乎相同. 但如果使用 CMD, 之後執行 container 時透過附加命令壓蓋.
+        詳見: https://docs.docker.com/reference/dockerfile/#understand-how-cmd-and-entrypoint-interact
+
+3. Docker image layer 概念與觀察
+  - 於 Dockerfile 內, 每一個指令都會形成一個 "映像層", 例如:
+    --------------------------------------------------------------------
+    FROM diamol/node
+    ENV TAGET="blog.sixeyed.com"
+    ENV METHOD="HEAD"
+    ENV INTERVAL="3000"
+    
+    WORKDIR /web-pin
+    COPY app.js .
+    
+    CMD ["node", "/web-ping/app.js"]
+    --------------------------------------------------------------------
+    以上 Dockerfile 定義並產生了七個 "映像層" (image layer).
+  - 觀看某 image 的 metadata
+    格式: docker image history [OPTIONS] <IMAGE>
+    承上範例, 內容會類似下面:
+    --------------------------------------------------------------------
+    $ sudo docker image history web-ping
+    IMAGE         CREATED         CREATED BY
+    47eeeb7cd600  30 hours ago    /bin/sh -c #(nop) CMD ["node" "/web-ping/app.js"]
+    <missing>     30 hours ago    /bin/sh -c #(nop) COPY file:a7cae366c9996502...
+    <missing>     30 hours ago    /bin/sh -c #(nop) WORKDIR /web-ping
+    ...
+    --------------------------------------------------------------------
+    多個 container 同時執行時可以共用完全相同的 "映像層" 以節省資源.
+  - 當編譯 Dockerfile 時, 若有任何 "映像層" 發生異動, 除了它自己，所有之後的 "映像層" 都會重新編譯以維護一致性。
+  - "映像層" 編譯的最佳化
+    透過重新安排 Dockerfile 內各命令的順序 (各 "映像層" 的順序), 將容易發生異動的命令放在後面，達成節省編譯資源。 
+    承上範例, 例如變更成如下:
+    --------------------------------------------------------------------
+    FROM diamol/node
+    CMD ["node", "/web-ping/app.js"]
+
+    ENV TAGET="blog.sixeyed.com" \
+        METHOD="HEAD" \
+        INTERVAL="3000"
+    
+    WORKDIR /web-pin
+    COPY app.js .
+    --------------------------------------------------------------------
+    將減少 "映像層" 個數, 並使變更時受到干擾的映像層變少.
+    
+  - !!!重要概念!!! 最終產生的 image, 只包含最後一個 FROM 含其之後的內容.
+
+4. 自 Docker Hub 下載與上傳 images
+  - 至官網 Docker hub 註冊.
+    如果使用 Google account 登入, 必須至 Profile=>Account settings 設定密碼或是 token.
+    於命令列, 才能透過帳號/密碼或是帳號/token 來存取 Docker Hub.
+  - 於命令列, 進行登入至 Docker hub 的動作. (同一部電腦執行一次即可, 會自動記住)
+    格式: docker login [--username <ACCOUNT>]
+    --------------------------------------------------------------------
+    $ docker login
+    Login with your Docker ID to push and pull images from Docker Hub. If you don't have a Docker ID, head over to https://hub.docker.com to create one.
+    Username: killbugchance   <-- 輸入你的 Docker Hub 帳號.
+    Password: *********
+    Login Succeeded
+    --------------------------------------------------------------------
+  - Docker Hub 內所謂的 repository, 即 image name. 然後包含有多個 tags (實際的各個版本的 images)
+  - 自 Docker hub 下載 image (如果 local 已經存在則略過)
+    格式: docker pull [<OPTIONS>] <NAME>[:<TAG>|@<DIGEST>]
+  - 上傳 image 至 Docker hub 
+    格式: docker push [<OPTIONS>] <NAME>[:<TAG>]
+    --------------------------------------------------------------------
+    (todo)
+    --------------------------------------------------------------------
+    該 image 的名稱 <NAME> 必須合乎:
+      - for Docker Hub: [docker.io/]<ACCOUNT>/<RESPSITORY or NAME>[:<TAG>]
+      - for GCP: <LOCATION>-docker.pkg.dev/<PROJECT_ID>/<REPO_NAME>/<PATH>[:<TAG>]
+      - (General case): [<HOST_DOMAIN_NAME>/]<depend on that host>   如果不給 <HOST DOMAIN NAME>, 則內定 docker.io
+    <TAG> 如果不給, 內定為 'latest'
+    上述 <REPOSITORY>, <PATH>, 與 <NAME> 是同樣的意思.
+  - 以下命令將指定 image 上傳至 Docker Hub 指定帳戶下的指定 repository. 如果 repository 不存在則會自動建立.
+    --------------------------------------------------------------------
+    $ docker push killbugchance/test_repo
+    --------------------------------------------------------------------
+    如果 local 端已經存在某 image 但名稱不合上述格式 (<ACCOUNT>/<REPOSITORY>). 則可以使用如下命令建立一個 <參考>
+    格式: docker image tag <SOURCE IMAGE>[:<tag>] <TARGET IMAGE>[:<TAG>]
+    然後再上傳.
+
+5. Container 狀態
+  - 狀態 Up: 將某 image 啟動, 或是將某 Exited 狀態的 container 重新啟動 (透過 start 命令), 即進入此狀態.
+    (1) docker run <IMAGE>
+    (2) docker container start <CONTAINER ID>
+  - 狀態 Exited: 此 container 已結束執行 (因為下達命令 stop, 或是程式自己結束執行), 但 container 的虛擬檔案系統依然存在.
+    (1) 此 container 自己結束執行.
+    (2) 外部命令將此 container 結束.
+        docker container stop <CONTAINER ID>
+  - 於狀態 Exited 狀態下, 可以執行 docker container start 命令將此 container 重新啟動. 新執行的 container 可沿用之前的檔案系統內容. 保持一定程度的 state machine.
+    格式: docker container start [<OPTIONS>] <CONTAINER_ID> <[CONTAINER_ID...]>
+  - 透過 docker container rm 命令來將指定 container 的所有資源徹底釋放, 包括其檔案系統, 相當於此 container 不再存在 (也就沒有所謂狀態).
+
+6. State machine
+  - 當 Container 自狀態 Up 至狀態 Exited, 其內原本的虛擬檔案系統依然存在. 此時可以將裡面的檔案拷貝出來或將外部檔案拷貝進去.
+    格式: docker container cp [<OPTIONS>] <CONTAINER_NAME>:<source path> <destination path>   拷貝 container 內某檔案出來.
+         docker container cp [<OPTIONS>] <source path> <CONTAINER_NAME>:<destination path>   拷貝外部檔案至 container 內.
+    --------------------------------------------------------------------
+    $ docker container run --name f1 diamol/ch06-file-display
+    (f1 執行結束進入狀態 Exited)
+    $ docker container cp test.txt f1:/
+    --------------------------------------------------------------------
+    上例將外部的 test.txt 拷貝到 container 內虛擬檔案系統的根目錄內.
+  - 如果將檔案壓蓋到 container 內的 readonly layer 的檔案, 也可以, Docker engine 自動會執行 copy-on-write, 將該變更檔案 link 到 writable 檔案系統區.
+ 
+7. 同 PC 下多個 containers 共享內部網路
+  - 概念: 建立一個能讓多個 containers 共同連線的 指定名稱 網路.
+  - 格式: docker network create <NETWORK_NAME>   <= 自訂網路名稱
+    --------------------------------------------------------------------
+    $ docker network create nat
+    $ docker network ls
+    NETWORK ID     NAME      DRIVER    SCOPE
+    8e1694cf01ed   bridge    bridge    local
+    7904538193e5   host      host      local
+    bdae62548b41   nat       bridge    local   <-- just created this
+    ec6e0d7c60b8   none      null      local
+    --------------------------------------------------------------------
+  - 啟動兩個 containers 並都連結到此內部網路
+    docker run 參數 --network <NETWORK_NAME>
+    --------------------------------------------------------------------
+    $ docker run -d --name abc -p 800:80 --network nat --tag process1
+    $ docker run -d --name def --network nat --tag process2
+    --------------------------------------------------------------------
+    process1 和 process2 是兩個 docker images.
+    外部瀏覽器可透過外部 port 800 (轉內部 port80) 存取 process1.
+    於 process1 內, 可透過例如使用 http://def/... 來存取 process2. 
+    (當然, process2 也可以透過 http://abc/... 方式來存取 process1)
+
+8. Container volume 功能 (Persistant storage)
+  - 可以於 local 端定義一 persistent 資料夾, 使 container 直接存取該資料夾. 
+    即使 container 不再執行, 該資料夾內容也依然存在.
+  - Type 1:  Named volume
+    格式: docker volume create <VOLUME-NAME>
+    --------------------------------------------------------------------
+    $ docker volume create db-name
+    $ docker volume ls
+    DRIVER    VOLUME NAME
+    local     db-name
+    --------------------------------------------------------------------
+    實際觀察, 該目錄位於 /var/lib/docker/volumes/<VOLUME-NAME>/_data/
+  - 啟動 container, 並定義內部哪個路徑會連結到該 named volume:
+    --------------------------------------------------------------------
+    $ docker run -v db-data:/db/data/ -it ubuntu ls -la /db/data
+    --------------------------------------------------------------------
+    container 程式直接存取 local 目錄 /db/data/, 即可實際上存取對應的 named volume db-data 所對應的目錄 (host 的 /var/lib/docker/volumes/db-name/_data).
+  - Type 2: Host volume
+    啟動 container, 並定義內部哪個路徑會連結到指定的 host volume, 比 Type 1 更方便.
+    --------------------------------------------------------------------
+    $ docker run -v ~/app:/app -it ubuntu ls -la /app
+    --------------------------------------------------------------------
+    container 程式直接存取 local 目錄 /app, 即可實際上存取對應的 host volume $HOME/app 目錄.
+  - container 存取該目錄方式
+    container 程式直接存取該目錄 /app/, 即可實際上存取對應的 volume host 的 $HOME/app 目錄.
+
+9. 建立 private Docker Hub
+  - 目前暫時不會用到, 先存放於此.
+    https://blog.pichuang.com.tw/20191123-how-to-build-up-a-secure-container-registry-using-docker-distribution.html#_1
+  - 例如要在 www.sysdev.astro.com:5000 放置 Docker image repository
+  - 於 CentOS 安裝:
+    --------------------------------------------------------------------
+    # yum install docker-distribution -y
+    # cat > /etc/docker-distribution/registry/config.xml
+    version: 0.1
+    log:
+      fields:
+        service: registry
+    storage:
+        cache:
+            layerinfo: inmemory
+        filesystem:
+            rootdirectory: /var/lib/registry
+    http:
+        addr: 0.0.0.0:5000
+        host: https://www.sysdev.astro.com:5000
+        tls:
+          certificate: /etc/docker-distribution/my_self_signed_cert.crt
+          key: /etc/docker-distribution/my_self_signed.key
+    EOF
+    按下 <Ctl-D>
+    --------------------------------------------------------------------
+    rootdirectory: 存放 image 的實際位置.
+    內定使用 port 5000/tcp
+  - 有關自簽憑證 for https:
+    --------------------------------------------------------------------
+    # openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
+        -keyout /etc/docker-distribution/my_self_signed.key \
+        -out /etc/docker-distribution/my_self_signed_cert.crt
+    Generating a 2048 bit RSA private key
+    ......+++
+    .................+++
+    writing new private key to '/etc/docker-distribution/my_self_signed.key'
+    -----
+    You are about to be asked to enter information that will be incorporated
+    into your certificate request.
+    What you are about to enter is what is called a Distinguished Name or a DN.
+    There are quite a few fields but you can leave some blank
+    For some fields there will be a default value,
+    If you enter '.', the field will be left blank.
+    -----
+    Country Name (2 letter code) [XX]: TW
+    State or Province Name (full name) []: Taipei
+    Locality Name (eg, city) [Default City]: New Taipei City
+    Organization Name (eg, company) [Default Company Ltd]: Astro Corp.
+    Organizational Unit Name (eg, section) []: RD II
+    Common Name (eg, your name or your server\'s hostname) []: www.sysdev.astro.com
+    Email Address []: root@rhel7.misc.local
+    
+    # openssl x509 \
+        -in /etc/docker-distribution/my_self_signed_cert.crt \
+        -out /etc/pki/ca-trust/source/anchors/workstation.pem \
+        -outform PEM
+
+    # update-ca-trust
+    --------------------------------------------------------------------
+  - 調整防火牆.
+    --------------------------------------------------------------------
+    # firewall-cmd --zone=public --add-port=5000/tcp --permanent
+    # firewall-cmd --reload
+    # firewall-cmd --zone=public --list-all
+    --------------------------------------------------------------------
+  - 使用 skopeo 進行驗證.
+    skopeo 是個 open source project, 用來處理 image, 進行搬運、刪除、驗證等動作.
+    --------------------------------------------------------------------
+    # yum install skopeo -y
+    # skopeo copy docker://docker.io/library/centos:7.7.1908 docker://www.sysdev.astro.com:5000/library/centos:7.7.1908
+    # skopeo inspect docker://www.sysdev.astro.com:5000/library/centos:7.7.1908
+    --------------------------------------------------------------------
+    嘗試拷貝一個 image 至此我們的 repository, 並進行驗證.
+
+<END of Docker-1.txt>

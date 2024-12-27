@@ -1,0 +1,8 @@
+{
+  "firebase": {
+    "projectId": "natural-motif-346601",
+    "databaseURL": "https://natural-motif-346601-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "storageBucket": "natural-motif-346601.appspot.com",
+    "locationId": "asia-east1"
+  }
+}

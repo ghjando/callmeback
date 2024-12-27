@@ -1,0 +1,14 @@
+{
+  "name": "shop_ranking",
+  "version": "1.0.0",
+  "description": "",
+  "main": "shop_ranking.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "",
+  "dependencies": {
+    "iconv-lite": "^0.6.3"
+  }
+}

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>預約提醒</title>
+<style type="text/css">
+@charset "UTF-8";html,body,div,span,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,abbr,address,cite,code,del,dfn,em,img,ins,kbd,q,samp,small,strong,sub,sup,var,b,i,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,textarea,table,caption,tbody,tfoot,thead,tr,th,td,article,aside,canvas,details,figcaption,figure,footer,header,hgroup,menu,nav,section,summary,time,mark,audio,video{margin:0;padding:0;font-size:100%}html{overflow-y:scroll}article,aside,details,figcaption,figure,footer,header,hgroup,menu,nav,section{display:block}b,strong{font-weight:bold}nav,ol,ul{list-style:none}img{border:0;vertical-align:top}table{border-collapse:collapse;border-spacing:0}input,button,textarea{color:#444;line-height:1.231;font-family:'Meiryo', sans-serif;font-family:'MS PGothic', arial, sans-serif\0/;font-size:13px;-webkit-text-size-adjust:none}select,input,button{font-size:100%;margin:0;vertical-align:baseline}button,input{line-height:normal}button,html input[type="button"],input[type="reset"],input[type="submit"]{cursor:pointer}input[type="checkbox"],input[type="radio"]{box-sizing:border-box;padding:0}textarea{overflow-x:hidden;overflow-y:auto;vertical-align:top}:focus{outline:0}h1,h2,h3,h4,h5,h6{font-weight:normal}em,cite{font-style:normal}table,th,td{border:none}fieldset{border:none}fieldset legend{position:absolute;left:-9999px;width:0;height:0;overflow:hidden;margin:0;padding:0}hr{display:none}input,button,textarea{border:0}body{color:#444;line-height:1.231;font-family:'Meiryo', sans-serif;font-family:'MS PGothic', arial, sans-serif\0/;font-size:13px;-webkit-text-size-adjust:none;font-family:arial,sans-serif}a:link,a:visited{color:#00e;text-decoration:underline}a:hover,a:active,a:focus{color:#00e;text-decoration:none}.MdGHD03Select{font-family:"Roboto",sans-serif;font-weight:300}.MdCF:after{content:"";display:block;clear:both}.MdHide{position:absolute;left:-9999px}.MdNonDisp{display:none !important}.MdFontB{font-weight:bold !important}.MdFontN{font-weight:normal !important}.MdLink01,.MdLink01:link,.MdLink01:visited,.MdLink01:hover,.MdLink01:active,.MdLink01:focus{text-decoration:underline !important}.MdLink02,.MdLink02:link,.MdLink02:visited,.MdLink02:hover,.MdLink02:active,.MdLink02:focus{text-decoration:none !important}.MdLink03,.MdLink03:link,.MdLink03:visited{text-decoration:underline !important}.MdLink03:hover,.MdLink03:active,.MdLink03:focus{text-decoration:none !important}.MdLink04,.MdLink04:link,.MdLink04:visited{text-decoration:none !important}.MdLink04:hover,.MdLink04:active,.MdLink04:focus{text-decoration:underline !important}.MdGHD01Head{height:43px;border-bottom:3px solid #3b3b3b}.MdGHD01Head .mdGHD01Wrap{margin:0 auto;width:960px}.MdGHD01Head h1 a{margin:23px 0 0 15px;text-indent:-9999px;display:block;width:100px;height:28px;background:url("data:image/png;base64,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") 0 0 no-repeat;background-size:100px 28px;}.MdQrError{text-align:center;margin-top:246px}.MdQrError .mdQrErrorTxt01{font-size:50px;color:#444;font-weight:300}.MdQrError .mdQrErrorTxt02{margin-top:7px;font-size:14px;color:#999}.MdQrError .mdQrErrorLink{margin-top:26px}.MdQrError .mdQrErrorLink a{margin:0 11px;color:#999;font-size:14px;text-decoration:underline;cursor:pointer}.MdQrSuccess {margin:60px 0 0;text-align:center}.MdQrSuccess .mdQrCode {margin:0 auto;width:250px;height:250px;border:#cdcdcd 1px solid}.MdQrSuccess .mdQrCode>img {width:100%} .mdQrTxt01 {margin:30px 0 16px;font-size:18px;color:#444}.MdQrSuccess .mdQrTxt02 {font-size:13px;color:#999;line-height:1.6em}.MdQrSuccess .mdQrLink {margin-top: 24px}.MdQrSuccess .mdQrLink li {display: inline-block;margin:0 10px}body{font-family:"Roboto",sans-serif}
+</style>
+</head>
+<body>
+<div class="LyWrap">
+
+<!--HEADER-AREA-->
+<header class="LyHead" role="banner">
+<div class="MdGHD01Head">
+<div class="mdGHD01Wrap">
+<h1><a href="#" onclick="window.location.reload(true);">預約提醒</a></h1>
+<!--/mdGHD01Wrap--></div>
+<!--/MdGHD01Head--></div>
+<!--/LyHead--></header>
+<!--/HEADER-AREA-->
+
+<!--CONTENTS-AREA-->
+<div class="LyContents" role="main">
+<div class="MdQrSuccess">
+<p class="mdQrCode"><img src="<%= image_url %>" alt=""></p>
+<p class="mdQrTxt01">請掃描行動條碼進行提醒設定</p>
+<!--
+<p class="mdQrTxt02">請在LINE應用程式上開啟「好友」分頁，點選畫面右上方用來加入好友的圖示，<br>接著點選「行動條碼」，然後掃描此行動條碼。</p>
+-->
+<ul class="mdQrLink">
+<li><a href="https://line.me/R/oaMessage/@callmeback/?預約提醒:<%= booking_data %> 🔔 請發送此訊息，完成提醒設定">手機使用者請按此處</a></li>
+</ul>
+<!--MdQrSuccess--></div>
+<!--/LyContents--></div>
+<!--/CONTENTS-AREA-->
+
+
+<!--/LyWrap--></div>
+
+<!--SCRIPT-->
+<!--/SCRIPT-->
+</body>
+</html>

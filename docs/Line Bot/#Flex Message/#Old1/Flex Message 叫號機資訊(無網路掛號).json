@@ -1,0 +1,203 @@
+{
+  "type": "bubble",
+  "size": "kilo",
+  "body": {
+    "type": "box",
+    "layout": "vertical",
+    "paddingAll": "10px",
+    "contents": [
+      {
+        "type": "box",
+        "layout": "vertical",
+        "contents": [
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "text",
+                    "text": "樂益耳鼻喉科診所",
+                    "weight": "bold",
+                    "size": "lg",
+                    "color": "#609040",
+                    "flex": 0,
+                    "decoration": "underline"
+                  }
+                ],
+                "flex": 0,
+                "action": {
+                  "type": "uri",
+                  "label": "action",
+                  "uri": "https://www.mainpi.com/query?i=1337"
+                }
+              }
+            ],
+            "paddingEnd": "7px"
+          },
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "text",
+                "text": "台北市大安區復興南路二段161號",
+                "color": "#999999",
+                "size": "sm",
+                "weight": "bold",
+                "decoration": "underline",
+                "action": {
+                  "type": "uri",
+                  "label": "action",
+                  "uri": "https://www.google.com/maps/search/?api=1&query=%E5%8F%B0%E5%8C%97%E5%B8%82%E5%A4%A7%E5%AE%89%E5%8D%80%E5%BE%A9%E8%88%88%E5%8D%97%E8%B7%AF%E4%BA%8C%E6%AE%B5161%E8%99%9F"
+                }
+              }
+            ],
+            "paddingEnd": "7px"
+          },
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "box",
+                "layout": "baseline",
+                "contents": [
+                  {
+                    "type": "icon",
+                    "url": "https://callmeback.com.tw/linebot_data/icons/list-box-svgrepo-com.png",
+                    "size": "24px",
+                    "offsetTop": "1px"
+                  }
+                ],
+                "action": {
+                  "type": "postback",
+                  "label": "換叫號機",
+                  "data": "換叫號機"
+                },
+                "height": "24px",
+                "width": "24px"
+              },
+              {
+                "type": "box",
+                "layout": "horizontal",
+                "contents": [
+                  {
+                    "type": "text",
+                    "text": "一診",
+                    "weight": "bold",
+                    "size": "lg",
+                    "color": "#306090",
+                    "flex": 0
+                  }
+                ],
+                "flex": 0,
+                "action": {
+                  "type": "postback",
+                  "label": "換叫號機",
+                  "data": "換叫號機"
+                }
+              }
+            ],
+            "paddingEnd": "7px",
+            "offsetStart": "-2px"
+          }
+        ]
+      },
+      {
+        "type": "separator",
+        "margin": "xl",
+        "color": "#FFFFFF"
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "text",
+            "text": "當前號碼",
+            "size": "md",
+            "weight": "bold",
+            "flex": 0
+          },
+          {
+            "type": "text",
+            "text": "31號",
+            "color": "#FF0000",
+            "size": "md",
+            "weight": "bold",
+            "margin": "lg"
+          },
+          {
+            "type": "box",
+            "layout": "horizontal",
+            "contents": [
+              {
+                "type": "text",
+                "text": "叫號查詢",
+                "size": "sm",
+                "weight": "bold",
+                "contents": [],
+                "color": "#FFFFFF",
+                "align": "center"
+              }
+            ],
+            "backgroundColor": "#6C757D",
+            "cornerRadius": "md",
+            "action": {
+              "type": "postback",
+              "label": "叫號查詢",
+              "data": "叫號查詢"
+            },
+            "width": "72px",
+            "paddingAll": "xs"
+          }
+        ],
+        "paddingEnd": "7px"
+      },
+      {
+        "type": "separator",
+        "margin": "xs",
+        "color": "#FFFFFF"
+      },
+      {
+        "type": "box",
+        "layout": "horizontal",
+        "contents": [
+          {
+            "type": "text",
+            "text": "上次跳號",
+            "size": "md",
+            "weight": "bold",
+            "flex": 0
+          },
+          {
+            "type": "text",
+            "text": "15分鐘前",
+            "color": "#999999",
+            "size": "md",
+            "weight": "bold",
+            "margin": "lg"
+          }
+        ]
+      },
+      {
+        "type": "separator",
+        "margin": "sm",
+        "color": "#FFFFFF"
+      },
+      {
+        "type": "text",
+        "text": "資料更新於20秒前",
+        "color": "#999999",
+        "size": "sm",
+        "weight": "bold",
+        "margin": "xl",
+        "align": "end"
+      }
+    ]
+  }
+}

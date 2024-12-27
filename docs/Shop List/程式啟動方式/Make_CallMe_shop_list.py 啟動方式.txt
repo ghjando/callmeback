@@ -1,0 +1,16 @@
+[Make_CallMe_shop_list.py 啟動方式]
+
+sudo su
+cd /home/royching_tp/callme_GCR
+
+# 啟動
+screen -mS Make_CallMe_shop_list python3 Make_CallMe_shop_list.py
+
+# 列出現有screen
+screen -ls
+
+# 重連
+screen -r Make_CallMe_shop_list
+
+# 關閉
+screen -X -S Make_CallMe_shop_list quit

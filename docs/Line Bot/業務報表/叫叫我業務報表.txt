@@ -1,0 +1,16 @@
+===============
+叫叫我 業務報表
+===============
+程式路徑：/var/call_me/report
+
+程式名稱：
+店家活躍度排行    shop_ranking.js
+店家使用數排行    usage_ranking.js
+店家使用人數季報  users_num_season_report.js
+
+程式用法：
+node shop_ranking.js 開始日期 結束日期
+node usage_ranking.js 開始日期 結束日期
+node users_num_season_report.js 結束日期
+
+日期格式：YYYYMMDD

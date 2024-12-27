@@ -1,0 +1,5 @@
+[Line LIFF 範例]
+https://liff.line.me/2003918297-RwqPbwG5/?shop_name=樂益耳鼻喉科診所&caller_name=一診
+
+[Line LIFF "2003918297-RwqPbwG5" 的 Endpoint URL]
+https://callmeback.com.tw/line_liff/scan_qr_code/index.html

@@ -1,0 +1,5 @@
+[URL Scheme 範例]
+https://line.me/R/oaMessage/@callmeback/?樂益耳鼻喉科診所;一診
+
+[Line LIFF 範例]
+https://liff.line.me/2003918297-RwqPbwG5/?shop_name=樂益耳鼻喉科診所&caller_name=一診

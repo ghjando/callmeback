@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>預約提醒</title>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+</head>
+<body>
+</body>
+</html>
+
+<script>
+/*
+function isMobile() {
+  try {
+    document.createEvent("TouchEvent"); return true;
+  } catch(e) {
+    return false; 
+  }
+}
+*/
+$(document).ready(function(){
+  console.log('預約提醒');
+  
+  //if(isMobile()) { console.log('手机端') }
+  //else { console.log('PC端' }
+  
+  //if(typeof window.orientataion !== 'undefined') { console.log('手机端') }
+  //else { console.log('PC端') }
+  
+  //let isMobile = window.matchMedia("only screen and (max-width: 760px)").matches;
+  
+  let isMobile = false;
+  let reg = /(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|WebOS|Symbian|Windows Phone|Opera Mini)/i;
+  if (navigator.userAgent.match(reg)) {
+    isMobile = true;
+    console.log('手机端(userAgent)');
+    //document.location.href="https://line.me/R/oaMessage/@callmeback/?預約提醒:陳筱玲(11月2日 09:30, 18號) 🔔 請發送此訊息，完成提醒設定";
+    document.location.href="https://line.me/R/oaMessage/<%= line_id %>/?預約提醒:<%= booking_data %> 🔔 請發送此訊息，完成提醒設定";
+  }
+  else if (window.matchMedia("(pointer:coarse)").matches){
+    isMobile = true;
+    console.log('手机端(pointer:coarse)');
+    //document.location.href="https://line.me/R/oaMessage/@callmeback/?預約提醒:陳筱玲(11月2日 09:30, 18號) 🔔 請發送此訊息，完成提醒設定";
+    document.location.href="https://line.me/R/oaMessage/<%= line_id %>/?預約提醒:<%= booking_data %> 🔔 請發送此訊息，完成提醒設定";
+  }
+  else {
+    isMobile = false;
+    console.log('PC端');
+    document.location.href="../booking_remind_pc?booking_data=<%= booking_data %>";
+  }
+});
+</script>
