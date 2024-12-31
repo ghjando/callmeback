@@ -1,0 +1,14 @@
+node_modules
+try*.js
+*.png
+z*.js
+*.json
+*.xlsx
+*.docx
+*.csv
+!.vscode/
+!keybindings.json
+!launch.json
+!settings.json
+z建立立牌或A4執行檔_清短版,js
+hanoi.aa
