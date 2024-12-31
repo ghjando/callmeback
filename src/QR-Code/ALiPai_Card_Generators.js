@@ -1,7 +1,24 @@
 const fs = require('fs');
-const QRCode = require('qrcode');
+// const QRCode = require('qrcode');
 const sharp = require('sharp');
+const path = require('path');
 require('dotenv').config();
+
+
+function deleteFilesInFolder(folderPath) {
+  // 讀取資料夾內的所有檔案
+  const files = fs.readdirSync(folderPath);
+
+  files.forEach((file) => {
+    const curPath = path.join(folderPath, file);
+    // 刪除檔案
+    fs.unlinkSync(curPath);
+  });
+}
+
+// 使用範例：刪除 LiPai_Card_Final 資料夾內的所有檔案
+deleteFilesInFolder('./LiPai_Card_Final');
+
 
 (async () => {
   const jsonString = fs.readFileSync('./DifferentJsonFile/多出來的店家.json', 'utf8');
