@@ -1,0 +1,8 @@
+{
+  "key": "end+space",
+  "command": "type",
+  "args": {
+    "text": "abcde"
+  },
+  "when": "editorTextFocus"
+}

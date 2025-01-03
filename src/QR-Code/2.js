@@ -1,0 +1,1 @@
+console.log('\r開始製作 Qrcod A4 , 請耐心等候...');
