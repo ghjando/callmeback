@@ -1,3 +1,4 @@
+common_data/
 firebase_service_account_key.json
 lineConfig.json
 storage_service_account_key.json
